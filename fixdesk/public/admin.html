@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<title>접수 관리</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+  /* 색·글꼴은 theme.css (docs-qa와 같은 공통 디자인). 예전 이름을 공통 색에 연결해요 */
+  :root { --ink: var(--text); --sub: var(--muted); --card: var(--panel); --red: var(--bad); --amber: var(--warn); }
+  body { font-size: 15px; }
+  header { background: var(--panel); color: var(--text); border-bottom: 1px solid var(--line); padding: 10px 22px; display:flex; align-items:center; gap:12px; position: sticky; top: 0; z-index: 10; flex-wrap: wrap; }
+  header h1 { font-size:17px; margin:0; display:flex; align-items:center; gap:8px; }
+  header h1 .logo { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 14px; }
+  header .sp { flex:1; }
+  header nav a { padding: 6px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; }
+  header nav a:hover { background: var(--panel-soft); color: var(--text); }
+  header button { background: var(--panel); color: var(--text); border:1px solid var(--line); border-radius:10px; padding:6px 12px; font:inherit; font-size:14px; cursor:pointer; }
+  main { padding:20px 22px 40px; max-width:1300px; margin:0 auto; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow: var(--shadow); }
+  .stat b { display:block; font-size:24px; margin-top:2px; letter-spacing:-0.02em; }
+  .stat small { color:var(--sub); }
+  .stat.alert b { color:var(--red); }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .chip { border:1px solid var(--line); background:var(--panel); color: var(--text); border-radius:999px; padding:6px 14px; font:inherit; font-size:14px; cursor:pointer; }
+  .chip:hover { border-color: var(--accent); }
+  .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight:700; }
+  .layout { display:grid; grid-template-columns: minmax(0,1.25fr) minmax(0,1fr); gap:16px; align-items:start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .list { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .item { display:grid; grid-template-columns: 56px 64px 1fr auto; gap:10px; align-items:center; padding:12px 14px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .item:last-child { border-bottom:0; }
+  .item:hover { background: var(--panel-soft); }
+  .item.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  .item .id { color:var(--sub); font-variant-numeric:tabular-nums; }
+  .item .sum { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item .meta { color:var(--sub); font-size:13px; }
+  .pill { display:inline-block; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid var(--line); white-space:nowrap; text-align:center; }
+  .u-긴급 { background:var(--bad); color:#fff; border-color:var(--bad); }
+  .u-보통 { background:var(--warn-soft); color:var(--warn); border-color:transparent; }
+  .u-낮음 { background:var(--panel-soft); color:var(--muted); }
+  .s-완료 { background:var(--ok-soft); color:var(--ok); border-color:transparent; }
+  .review { background:var(--panel); color:var(--bad); border-color:var(--bad); }
+  .detail { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; position:sticky; top:68px; box-shadow: var(--shadow); }
+  .detail h2 { margin:0 0 4px; font-size:19px; }
+  .detail .photo { width:100%; max-height:280px; object-fit:contain; background:var(--panel-soft); border-radius:10px; margin:10px 0; }
+  .box { background:var(--panel-soft); border:1px solid var(--line); border-radius:10px; padding:12px; margin:10px 0; line-height:1.65; white-space:pre-wrap; }
+  .ai { border-left:4px solid var(--accent); background: var(--accent-soft); border-color: transparent; border-left-color: var(--accent); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  select, input[type=password] { width:100%; }
+  .btn { font:inherit; font-weight:700; padding:10px 14px; border-radius:10px; border:0; background:var(--accent); color:var(--accent-ink); cursor:pointer; }
+  .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #000); }
+  .btn.light { background:var(--panel); color:var(--accent); border:1px solid var(--accent); }
+  .row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .events { margin:12px 0 0; padding:0; list-style:none; font-size:13px; color:var(--sub); }
+  .events li { padding:6px 0; border-top:1px dashed var(--line); }
+  .events b { color:var(--ink); font-weight:600; margin-right:6px; }
+  .empty { padding:40px; text-align:center; color:var(--sub); }
+  label { font-size:13px; color:var(--sub); display:block; margin-bottom:4px; }
+  #login { max-width:360px; margin:12vh auto; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:26px; box-shadow: var(--shadow); }
+  #login h1 { font-size:20px; margin:0 0 14px; }
+  .err { color:var(--red); min-height:1.2em; margin-top:8px; }
+  .demo-tag { background:var(--warn-soft); color:var(--warn); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; }
+  .demo-note { background:var(--warn-soft); border:1px solid transparent; border-radius:10px; padding:10px 12px; font-size:13px; color:var(--warn); margin-top:10px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<form id="login" hidden>
+  <h1>접수 관리 로그인</h1>
+  <label for="pw">관리자 비밀번호</label>
+  <input id="pw" type="password" autocomplete="current-password">
+  <div class="row"><button class="btn" type="submit">들어가기</button></div>
+  <div class="err" id="loginErr"></div>
+</form>
+
+<div id="app" hidden>
+  <header>
+    <h1><span class="logo">F</span>하자·AS 접수 관리</h1><span class="demo-tag" id="demoTag" hidden>시연용 · 보기 전용</span><span class="sp"></span>
+    <nav><a href="/">고객 접수 화면</a></nav>
+    <button id="refresh" type="button">새로고침</button>
+    <button id="logout" type="button">나가기</button>
+  </header>
+  <main>
+    <section class="stats" id="stats"></section>
+    <div class="filters" id="filters"></div>
+    <div class="layout">
+      <div class="list" id="list"></div>
+      <aside class="detail" id="detail"><div class="empty">왼쪽에서 접수를 고르세요</div></aside>
+    </div>
+  </main>
+</div>
+
+<script>
+// ===== [설정값] =====
+// 목록에 쓰는 값들, 저장된 비밀번호, 고른 필터
+const CATEGORIES = ["누수·배관","난방·보일러","전기·조명","도배·장판","주방·가구","욕실·타일","창호·문","기타"];
+const URGENCIES = ["긴급","보통","낮음"];
+const STATUSES = ["접수","배정","처리중","완료"];
+const $ = (id) => document.getElementById(id);
+let key = sessionStorage.getItem("fixdesk.admin") || "";
+let role = "admin"; // 서버가 알려주는 권한: admin(운영자) / demo(시연용, 보기만)
+let filter = { status: "진행중", urgency: "" };
+let selected = null;
+
+// ===== [화면 도우미] =====
+// 글자 안전하게 넣기, 전화번호·시간 모양 바꾸기
+// 글자를 화면에 넣을 때는 항상 이걸로 (고객이 쓴 글에 HTML이 섞여도 실행되지 않게)
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+// 01012345678 → 010-1234-5678 (가려진 번호는 그대로)
+const phoneFmt = (p) => /^\d{10,11}$/.test(p || "") ? p.replace(/^(\d{3})(\d{3,4})(\d{4})$/, "$1-$2-$3") : (p || "");
+// DB 시간(UTC) → 한국 시간
+const kst = (s) => s ? new Date(s.replace(" ", "T") + "Z").toLocaleString("ko-KR", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit" }) : "";
+
+// ===== [서버 연결] =====
+// 서버에 요청 보내기. 비밀번호가 틀리면 로그인 화면으로
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { "content-type": "application/json", "x-admin-key": key, ...(opts.headers || {}) } });
+  const data = await res.json().catch(() => ({}));
+  // 401 = 비밀번호 틀림(몇 번 남았는지 안내), 429 = 여러 번 틀려서 잠시 막힘
+  if (res.status === 401 || res.status === 429) { showLogin(data.error || "비밀번호가 맞지 않아요"); throw new Error(String(res.status)); }
+  if (!res.ok) throw new Error(data.error || "오류");
+  return data;
+}
+
+// ===== [관리자 로그인] =====
+// 로그인·로그아웃·새로고침 버튼
+function showLogin(msg = "") {
+  sessionStorage.removeItem("fixdesk.admin"); key = "";
+  $("app").hidden = true; $("login").hidden = false; $("loginErr").textContent = msg; $("pw").focus();
+}
+
+$("login").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  key = $("pw").value;
+  try { await api("/api/admin/stats"); } catch { return; }
+  sessionStorage.setItem("fixdesk.admin", key);
+  $("login").hidden = true; $("app").hidden = false; loadAll();
+});
+$("logout").onclick = () => showLogin();
+$("refresh").onclick = () => loadAll();
+
+// ===== [전체 새로고침] =====
+// 권한 확인 후 통계·목록·상세를 다시 불러옴
+async function loadAll() {
+  role = (await api("/api/admin/me")).role;
+  $("demoTag").hidden = role !== "demo";
+  await Promise.all([loadStats(), loadList()]);
+  if (selected) openDetail(selected);
+}
+
+// ===== [통계] =====
+// 위쪽 숫자 카드들
+async function loadStats() {
+  const s = await api("/api/admin/stats");
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) + "%" : "-");
+  const cards = [
+    ["오늘 접수", s.today ?? 0, `전체 ${s.n}건`],
+    ["처리 안 끝난 긴급", s.urgent_open ?? 0, `진행 중 ${s.open ?? 0}건`, (s.urgent_open ?? 0) > 0],
+    ["사람 확인 필요", s.review ?? 0, "AI가 판단 못 한 건", (s.review ?? 0) > 0],
+    ["AI 종류 정확도", pct(s.cat_ok, s.checked), `사람이 확인한 ${s.checked}건 기준`],
+    ["AI 급한 정도 정확도", pct(s.urg_ok, s.checked), `사람이 확인한 ${s.checked}건 기준`],
+    ["분류 1건 비용", s.avg_cost != null ? `${s.avg_cost}원` : "-", s.avg_ms != null ? `평균 ${(s.avg_ms / 1000).toFixed(1)}초` : ""],
+    ["완료까지 평균", s.avg_done_hours != null ? `${s.avg_done_hours}시간` : "-", "접수 → 완료"],
+  ];
+  $("stats").innerHTML = cards.map(([t, v, sub, alert]) =>
+    `<div class="stat ${alert ? "alert" : ""}"><small>${esc(t)}</small><b>${esc(v)}</b><small>${esc(sub)}</small></div>`).join("");
+}
+
+// ===== [관리자 화면 목록] =====
+// 필터 버튼과 접수 목록
+function renderFilters() {
+  const chips = [
+    ["status", "진행중", "진행 중"], ["status", "", "전체"], ["status", "완료", "완료"],
+    ["urgency", "", "모든 급한 정도"], ...URGENCIES.map((u) => ["urgency", u, u]),
+  ];
+  $("filters").innerHTML = chips.map(([k, v, label]) =>
+    `<button class="chip ${filter[k] === v ? "on" : ""}" data-k="${k}" data-v="${v}">${esc(label)}</button>`).join("");
+  $("filters").querySelectorAll(".chip").forEach((b) => b.onclick = () => { filter[b.dataset.k] = b.dataset.v; renderFilters(); loadList(); });
+}
+
+async function loadList() {
+  const q = new URLSearchParams(Object.entries(filter).filter(([, v]) => v));
+  const rows = await api("/api/admin/tickets?" + q);
+  if (!rows.length) { $("list").innerHTML = `<div class="empty">조건에 맞는 접수가 없어요</div>`; return; }
+  $("list").innerHTML = rows.map((t) => `
+    <div class="item ${t.id === selected ? "sel" : ""}" data-id="${t.id}">
+      <span class="id">#${t.id}</span>
+      <span class="pill u-${esc(t.urgency)}">${esc(t.urgency)}</span>
+      <div style="min-width:0">
+        <div class="sum">${esc(t.summary)}</div>
+        <div class="meta">${esc(t.category)} · ${esc(t.team)} · ${esc(t.address)} · ${kst(t.created_at)}</div>
+      </div>
+      <div>${t.needs_review ? `<span class="pill review">확인 필요</span> ` : ""}<span class="pill s-${esc(t.status)}">${esc(t.status)}</span></div>
+    </div>`).join("");
+  $("list").querySelectorAll(".item").forEach((el) => el.onclick = () => openDetail(+el.dataset.id));
+}
+
+// ===== [접수 상세] =====
+// 접수 하나를 눌렀을 때 오른쪽 자세히 보기
+async function openDetail(id) {
+  selected = id;
+  $("list").querySelectorAll(".item").forEach((el) => el.classList.toggle("sel", +el.dataset.id === id));
+  const t = await api(`/api/admin/tickets/${id}`);
+  const cat = t.checked_category || t.category, urg = t.checked_urgency || t.urgency;
+  const opt = (list, cur) => list.map((v) => `<option ${v === cur ? "selected" : ""}>${esc(v)}</option>`).join("");
+  $("detail").innerHTML = `
+    <h2>#${t.id} ${esc(t.summary)}</h2>
+    <div class="meta" style="color:var(--sub)">${esc(t.name)} · ${esc(phoneFmt(t.phone))} ·${esc(t.address)} · ${kst(t.created_at)}</div>
+    ${t.photo ? `<img class="photo" src="${esc(t.photo)}" alt="고객이 올린 사진">` : ""}
+    <div class="box">${esc(t.description)}</div>
+    <div class="box ai"><b>AI 판단</b> — ${esc(t.category)} · ${esc(t.urgency)} → ${esc(t.team)}${t.needs_review ? " (확인 필요)" : ""}
+${esc(t.reason)}
+<span style="color:var(--sub)">고객 안내: ${esc(t.customer_guide)}</span>${t.ai_cost_krw != null ? `
+<span style="color:var(--sub)">${(t.ai_ms / 1000).toFixed(1)}초 · 약 ${t.ai_cost_krw.toFixed(1)}원</span>` : ""}</div>
+
+    ${role === "demo" ? `
+    <div class="demo-note">시연용 계정이라 볼 수만 있어요. 운영자는 여기서 AI 판단을 확인·수정하고 처리 상태를 바꿔요.
+    고객 이름·연락처는 가려서 보여요.</div>
+    <div style="margin-top:10px"><label>처리 상태</label><span class="pill s-${esc(t.status)}">${esc(t.status)}</span>
+      ${t.checked_category ? ` <span class="pill">사람 확인: ${esc(t.checked_category)} · ${esc(t.checked_urgency)}</span>` : ""}</div>` : `
+    <div class="grid2">
+      <div><label>종류 (확인)</label><select id="dCat">${opt(CATEGORIES, cat)}</select></div>
+      <div><label>급한 정도 (확인)</label><select id="dUrg">${opt(URGENCIES, urg)}</select></div>
+    </div>
+    <div class="row">
+      <button class="btn light" id="dCheck">${t.checked_category ? "확인 다시 저장" : "이대로 확인"}</button>
+    </div>
+    <div style="margin-top:14px"><label>처리 상태</label>
+      <div class="row" style="margin-top:0">${STATUSES.map((s) =>
+        `<button class="chip ${s === t.status ? "on" : ""}" data-s="${s}">${s}</button>`).join("")}</div>
+    </div>`}
+    <ul class="events">${t.events.map((e) => `<li><b>${esc(e.kind)}</b>${esc(e.detail)} <span>· ${kst(e.at)}</span></li>`).join("")}</ul>`;
+
+  if (role === "demo") return; // 시연용은 버튼이 없음 (서버도 수정 요청을 막음)
+  // ===== [상태 바꾸기] =====
+  // '이대로 확인' 버튼과 처리 상태 버튼 (시연용은 없음)
+  $("dCheck").onclick = async () => {
+    await api(`/api/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify({ checked_category: $("dCat").value, checked_urgency: $("dUrg").value }) });
+    loadAll();
+  };
+  $("detail").querySelectorAll("[data-s]").forEach((b) => b.onclick = async () => {
+    await api(`/api/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify({ status: b.dataset.s }) });
+    loadAll();
+  });
+}
+
+// ===== [처음 열 때] =====
+// 필터를 그리고, 로그인돼 있으면 바로 불러옴
+renderFilters();
+if (key) { $("app").hidden = false; loadAll().catch(() => {}); } else showLogin();
+</script>
+</body>
+</html>

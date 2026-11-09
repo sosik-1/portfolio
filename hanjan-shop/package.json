@@ -1,0 +1,15 @@
+{
+  "name": "hanjan-shop",
+  "version": "1.0.0",
+  "description": "가상 원두 가게 + 운영 자동화 (주문 알림, AI 문의 답변 초안, 재구매 안내, 재고 알림, 매일 보고서)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File dev.ps1",
+    "seed": "wrangler d1 execute hanjan-db --local --file seed.sql",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.5.0"
+  }
+}

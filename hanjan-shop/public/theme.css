@@ -1,0 +1,94 @@
+/* 공통 디자인: 밝은 업무용 화면 (항상 밝게) (docs-qa · 경비 검수 에이전트 · fixdesk 공통)
+   색은 여기서만 정하고, 각 화면은 var(--이름)으로 가져다 써요. */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
+:root {
+  --bg: #f3f5f8;          /* 바탕: 아주 밝은 회색 (사내 업무 도구처럼) */
+  --panel: #ffffff;       /* 카드 */
+  --panel-soft: #f7f9fc;  /* 카드 안 보조 영역 */
+  --text: #172033;        /* 본문 글자 (짙은 남색) */
+  --muted: #5b6577;       /* 보조 글자 */
+  --line: #e1e6ef;        /* 테두리 */
+  --accent: #2f5bea;      /* 포인트 (파랑) */
+  --accent-ink: #ffffff;  /* 포인트 위 글자 */
+  --accent-soft: #eaf0ff;
+  --ok: #157347; --ok-soft: #e7f6ee;
+  --warn: #a15c00; --warn-soft: #fff3df;
+  --bad: #c0362c; --bad-soft: #fdecea;
+  --mark: #ffe9a8;
+  --shadow: 0 1px 2px rgba(23, 32, 51, .04), 0 6px 20px rgba(23, 32, 51, .06);
+  --radius: 14px;
+  color-scheme: light;
+}
+/* 다크 모드는 쓰지 않아요: 컴퓨터 설정과 관계없이 항상 밝은 업무용 화면 (면접관마다 같은 모습으로 보이게) */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15.5px/1.7 "Pretendard Variable", Pretendard, system-ui, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  letter-spacing: -0.01em;
+  word-break: keep-all;          /* 한국어 단어 중간에서 줄이 안 바뀌게 */
+  overflow-wrap: anywhere;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+
+/* ---------- 위쪽 메뉴 (흰색 + 파란 포인트) ---------- */
+.topbar { background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
+.topbar .wrap { display: flex; align-items: center; gap: 16px; min-height: 56px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); text-decoration: none; font-size: 16px; }
+.brand .logo { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 14px; }
+.brand small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.topbar nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.topbar nav a { padding: 6px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; }
+.topbar nav a:hover { background: var(--panel-soft); color: var(--text); }
+.topbar nav a.on { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+
+/* ---------- 머리말 (밝은 바탕, 짧게) ---------- */
+.hero { padding-top: 22px; padding-bottom: 16px; }
+.hero h1 { margin: 0; font-size: clamp(20px, 2.6vw, 24px); line-height: 1.4; letter-spacing: -0.02em; }
+.hero p { margin: 6px 0 0; color: var(--muted); max-width: 760px; font-size: 14.5px; }
+.hero p b { color: var(--text); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.chips li { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 3px 10px; font-size: 13px; color: var(--muted); }
+.chips li b { color: var(--accent); }
+
+/* ---------- 카드 ---------- */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); min-width: 0; }
+.panel h2, h2.title { font-size: 15px; margin: 0 0 12px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 6px; }
+
+/* ---------- 버튼·입력 ---------- */
+button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 7px 14px; transition: background .15s, border-color .15s; }
+button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); background: var(--panel-soft); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; padding: 9px 18px; }
+button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 88%, #000); border-color: transparent; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+textarea, input[type="text"], input[type="tel"], input[type="password"], input[type="search"], select {
+  font: inherit; color: var(--text); background: var(--panel-soft); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px;
+}
+textarea:focus, input:focus, select:focus { border-color: var(--accent); background: var(--panel); outline: none; }
+.pill { font-size: 13px; padding: 5px 12px; border-radius: 99px; text-align: left; }
+
+/* ---------- 판정·상태 표시 ---------- */
+.badge { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 13px; padding: 3px 12px; border-radius: 99px; white-space: nowrap; }
+.badge.ok, .v-ok { background: var(--ok-soft); color: var(--ok); }
+.badge.no, .v-fix { background: var(--warn-soft); color: var(--warn); }
+.v-bad { background: var(--bad-soft); color: var(--bad); }
+.meta { font-size: 13px; color: var(--muted); }
+.empty { color: var(--muted); text-align: center; padding: 36px 12px; }
+.dots::after { content: "…"; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+
+/* ---------- 표 ---------- */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th { background: var(--panel-soft); color: var(--muted); font-weight: 600; text-align: left; }
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--panel-soft); }
+
+footer.site { color: var(--muted); font-size: 12.5px; padding: 8px 16px 32px; }

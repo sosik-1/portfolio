@@ -1,0 +1,29 @@
+name = "hanjan-shop"
+main = "src/index.js"
+compatibility_date = "2026-10-15"
+compatibility_flags = ["nodejs_compat"]
+
+# 실행 위치 고정: 한국 요청이 홍콩 데이터센터에서 처리되면 Anthropic API가 403으로 막아요 (fixdesk에서 겪음)
+# 2026-11-07: hostname 방식은 홍콩(HKG)으로 잡혀서 403이 났어요 → 미국 동부 지역으로 직접 지정
+[placement]
+region = "aws:us-east-1"
+
+# 예약 작업: 매일 00:00 UTC = 한국 시간 아침 9시 → 재구매 안내 + 어제 판매 보고서 (src/jobs.js)
+[triggers]
+crons = ["0 0 * * *"]
+
+# 화면 파일 (index.html = 가게, admin.html = 관리자)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# 저장소 (SQLite). 2026-11-07에 `wrangler d1 create hanjan-db`로 만든 클라우드 DB
+[[d1_databases]]
+binding = "DB"
+database_name = "hanjan-db"
+database_id = "0ad988f6-4a71-4dfd-ab5c-d262dbcf10da"
+
+# 비밀값은 여기 적지 않아요:
+#   ANTHROPIC_API_KEY, ADMIN_PASSWORD, DEMO_PASSWORD
+#   연동(선택): SLACK_WEBHOOK_URL, SHEET_WEBHOOK_URL·SHEET_SECRET(구글 시트), NOTION_TOKEN·NOTION_DB_ID(배송 보드)·NOTION_INQ_DB_ID(문의 보드)
+#   → 배포: set-secrets.ps1 / set-integrations.ps1, 로컬: .dev.vars 파일

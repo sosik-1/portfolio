@@ -1,0 +1,29 @@
+name = "expense-agent"
+main = "src/entry.py"
+compatibility_date = "2026-10-15"
+compatibility_flags = ["python_workers"]
+
+# Anthropic API 가까운 곳에서 실행 (홍콩 데이터센터에서는 API가 막힘 — fixdesk에서 겪은 문제)
+# 2026-11-07: hostname 방식이 홍콩(HKG)으로 잡혀 AI 403 → 미국 동부로 직접 지정
+[placement]
+region = "aws:us-east-1"
+
+# docs-qa와 같은 DB를 써요 (표: past_claims, checks)
+[[d1_databases]]
+binding = "DB"
+database_name = "docs-qa-db"
+database_id = "4bf57dc5-a40d-4e97-bd82-f55585a97ce2"
+
+# 규정 검색: docs-qa Worker에 내부로 바로 연결 (같은 계정 workers.dev 주소끼리는 공개 주소로 부르면 막힘)
+[[services]]
+binding = "DOCS_QA"
+service = "docs-qa"
+
+[vars]
+DOCS_QA_URL = "https://docs-qa.dlalsrn08011.workers.dev" # 서비스 바인딩이 없을 때만 씀
+
+# 비밀값: ANTHROPIC_API_KEY, ADMIN_TOKEN(평가용), SHEET_WEBHOOK_URL·SHEET_SECRET(구글 시트), SLACK_WEBHOOK_URL(재무팀 Slack 채널)
+
+# 화면 파일 (index.html, samples.json)
+[assets]
+directory = "./public"

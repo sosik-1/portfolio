@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<title>사내 문서 Q&A</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+/* 이 화면에만 쓰는 모양 (색·글꼴·카드·버튼은 theme.css) */
+main.layout { display: grid; grid-template-columns: 340px 1fr; gap: 18px; padding-bottom: 20px; align-items: start; }
+@media (max-width: 880px) { main.layout { grid-template-columns: 1fr; } .chat { order: -1; min-height: 60vh; } }
+.side { display: grid; gap: 18px; }
+.doc { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.doc:first-child { border-top: 0; padding-top: 0; }
+.doc .icon { width: 34px; height: 34px; border-radius: 9px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: none; }
+.doc .name { flex: 1; min-width: 0; }
+.doc .name b { display: block; font-weight: 600; font-size: 14.5px; line-height: 1.4; }
+.doc small { color: var(--muted); font-size: 12.5px; }
+.tag { font-size: 11.5px; padding: 2px 8px; border-radius: 99px; background: var(--panel-soft); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; }
+.tag.mine { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+button.link { border: 0; background: none; padding: 0; color: var(--muted); font-size: 12.5px; text-decoration: underline; }
+.drop { margin-top: 14px; border: 2px dashed var(--line); border-radius: 12px; padding: 16px; text-align: center; color: var(--muted); font-size: 14px; background: var(--panel-soft); }
+.drop.over { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.drop label { color: var(--accent); cursor: pointer; font-weight: 600; text-decoration: underline; }
+.status { font-size: 13px; margin-top: 8px; min-height: 1.2em; }
+.status.err { color: var(--bad); }
+.examples { display: flex; flex-wrap: wrap; gap: 6px; }
+.examples button { font-size: 13.5px; padding: 6px 12px; border-radius: 99px; text-align: left; background: var(--panel-soft); }
+.chat { display: flex; flex-direction: column; min-height: 72vh; padding: 0; overflow: hidden; }
+.chat .head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chat .head h2 { margin: 0; }
+.log { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 18px; background: var(--panel-soft); }
+.q { align-self: flex-end; background: var(--accent); color: var(--accent-ink); padding: 9px 14px; border-radius: 16px 16px 4px 16px; max-width: 82%; font-weight: 500; }
+.a { background: var(--panel); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 14px 16px; max-width: 92%; box-shadow: var(--shadow); }
+.a .text { margin: 10px 0 4px; white-space: pre-wrap; font-size: 15.5px; line-height: 1.75; }
+.a .note { color: var(--muted); font-size: 14px; }
+.cite { display: block; width: 100%; text-align: left; margin-top: 10px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; background: var(--panel); padding: 10px 12px; }
+.cite:hover { background: var(--accent-soft) !important; }
+.cite .src { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.cite .quote { display: block; margin-top: 3px; line-height: 1.6; }
+.a .meta { margin-top: 10px; }
+details { margin-top: 10px; font-size: 13.5px; }
+details summary { cursor: pointer; color: var(--muted); }
+details ol { padding-left: 20px; margin: 6px 0; }
+details li { margin: 4px 0; }
+details li button { font-size: 13.5px; padding: 0; border: 0; background: none; color: var(--accent); text-align: left; }
+form.ask { display: flex; gap: 8px; padding: 14px 18px 6px; border-top: 1px solid var(--line); background: var(--panel); }
+form.ask textarea { flex: 1; resize: none; height: 48px; }
+.opts { display: flex; gap: 12px; align-items: center; font-size: 13px; color: var(--muted); padding: 0 18px 14px; flex-wrap: wrap; background: var(--panel); }
+.opts select { font-size: 13px; padding: 4px 8px; }
+.log .empty { margin: auto 0; }
+dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); max-width: min(680px, calc(100vw - 32px)); width: 100%; padding: 18px; box-shadow: var(--shadow); }
+dialog::backdrop { background: rgba(15, 20, 29, .45); }
+dialog pre { white-space: pre-wrap; font: inherit; background: var(--panel-soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px; max-height: 60vh; overflow: auto; line-height: 1.75; }
+mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="logo">규</span>사내 규정 AI <small>포트폴리오 데모</small></a>
+    <nav>
+      <a class="on" href="https://docs-qa.dlalsrn08011.workers.dev">문서 Q&A</a>
+      <a href="https://expense-agent.dlalsrn08011.workers.dev">경비·견적 검수</a>
+    </nav>
+  </div>
+</header>
+<section class="hero wrap">
+  <h1>규정을 찾아서, 근거와 함께 답해요</h1>
+  <p>회사 규정·매뉴얼에서 관련 조항을 찾아 <b>문서 이름·쪽·원문 문장</b>을 함께 보여줘요. 문서에 없는 내용은 지어내지 않고 "문서에서 찾지 못했어요"라고 답해요.</p>
+  <ul class="chips">
+    <li>평가 40문제 <b>40/40</b></li>
+    <li>지어낸 답 <b>0건</b></li>
+    <li>키워드 + 뜻 <b>섞어 찾기</b></li>
+    <li>질문당 약 <b>19원</b></li>
+  </ul>
+</section>
+<main class="layout wrap">
+  <aside class="side">
+    <div class="panel">
+      <h2>📄 문서</h2>
+      <div id="docs"><div class="empty">불러오는 중…</div></div>
+      <div class="drop" id="drop">
+        PDF·텍스트·마크다운 파일을 끌어다 놓거나 <label for="file">파일 고르기</label>
+        <input id="file" type="file" accept=".pdf,.txt,.md,.markdown" hidden>
+        <div style="font-size:12px;margin-top:4px">올린 문서는 내 화면에서만 보이고 24시간 뒤 지워져요</div>
+      </div>
+      <div class="status" id="upStatus"></div>
+    </div>
+    <div class="panel">
+      <h2>💬 이런 걸 물어보세요</h2>
+      <div class="examples" id="examples"></div>
+    </div>
+  </aside>
+  <section class="panel chat">
+    <div class="head"><h2>질문하기</h2><span class="meta">예시 회사 '(주)다온웍스'의 규정 5개</span></div>
+    <div class="log" id="log"><div class="empty" id="empty">휴가·경비·구매견적·보안 규정과 장비 장애 대응 매뉴얼(PDF)이 올라가 있어요.<br>왼쪽 예시 질문을 누르거나 직접 물어보세요.</div></div>
+    <form class="ask" id="ask">
+      <textarea id="q" placeholder="예: 배우자가 출산하면 휴가를 며칠 쓸 수 있나요?" maxlength="500"></textarea>
+      <button class="primary" id="send">묻기</button>
+    </form>
+    <div class="opts">
+      <label>검색 방식
+        <select id="mode">
+          <option value="hybrid">섞어 찾기 (키워드 + 뜻)</option>
+          <option value="keyword">키워드만</option>
+          <option value="vector">뜻(임베딩)만</option>
+        </select>
+      </label>
+      <span>Enter 묻기 · Shift+Enter 줄바꿈</span>
+    </div>
+  </section>
+</main>
+<footer class="site wrap">예시 문서와 회사 이름은 모두 지어낸 것이에요. 답은 Claude(Anthropic)가 만들고, 근거 문장은 서버가 원문과 한 번 더 대조해요.</footer>
+
+<dialog id="dlg">
+  <div class="src" id="dlgSrc" style="color:var(--muted);font-size:13px"></div>
+  <pre id="dlgText"></pre>
+  <form method="dialog" style="text-align:right"><button>닫기</button></form>
+</dialog>
+
+<script type="module">
+import { pdfToPages, textToPages, kindOf, titleOf } from "./extract.js";
+
+// ===== [화면 공통 도우미] =====
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+// ===== [방문자 표시] =====
+// 방문자 표시: 브라우저마다 무작위 값. 내가 올린 문서를 나만 보게 하는 용도
+function ownerId() {
+  let id = null;
+  try { id = localStorage.getItem("docsqa-owner"); } catch {}
+  if (!id) {
+    id = crypto.randomUUID();
+    try { localStorage.setItem("docsqa-owner", id); } catch {}
+  }
+  return id;
+}
+const OWNER = ownerId();
+
+// ===== [예시 질문 버튼] =====
+const EXAMPLES = [
+  "배우자가 출산하면 휴가를 며칠 쓸 수 있나요?",
+  "야근하면 저녁 식대는 얼마까지 돼요?",
+  "출장 가서 노트북이 고장 나면 어떻게 해요?",
+  "회사 노트북을 잃어버렸어요. 언제까지 누구한테 알려야 하나요?",
+  "P1 장애는 몇 시간 안에 복구해야 해요?",
+  "동호회 활동비 지원이 있나요?",
+];
+$("examples").innerHTML = EXAMPLES.map((q) => `<button type="button">${esc(q)}</button>`).join("");
+$("examples").onclick = (e) => { if (e.target.tagName === "BUTTON") { $("q").value = e.target.textContent; ask(); } };
+
+// ---------- 문서 목록 ----------
+// ===== [화면: 문서 목록 보여주기] =====
+async function loadDocs() {
+  const r = await fetch(`/api/docs?owner=${OWNER}`).then((r) => r.json());
+  $("docs").innerHTML = r.docs.map((d) => {
+    const info = [d.kind.toUpperCase(), d.pages ? `${d.pages}쪽` : null, `조각 ${d.chunk_count}개`].filter(Boolean).join(" · ");
+    const left = d.expires_at ? Math.max(0, Math.round((new Date(d.expires_at.replace(" ", "T") + "Z") - Date.now()) / 3600e3)) : null;
+    return `<div class="doc"><span class="icon">${esc(d.kind.toUpperCase())}</span><div class="name"><b>${esc(d.title)}</b><small>${info}${left !== null ? ` · ${left}시간 뒤 삭제` : ""}</small></div>
+      ${d.is_sample ? `<span class="tag">예시</span>` : `<span class="tag mine">내 문서</span><button class="link" data-del="${d.id}" title="지우기">지우기</button>`}</div>`;
+  }).join("") || `<div class="empty">문서가 없어요</div>`;
+}
+// ===== [화면: 문서 지우기] =====
+$("docs").onclick = async (e) => {
+  const id = e.target.dataset?.del;
+  if (!id || !confirm("이 문서를 지울까요?")) return;
+  await fetch(`/api/docs/${id}?owner=${OWNER}`, { method: "DELETE" });
+  loadDocs();
+};
+
+// ---------- 올리기 ----------
+// ===== [화면: 문서 올리기] 파일 → 글자 → 서버로 보내기 =====
+let pdfjs;
+async function upload(file) {
+  const st = $("upStatus");
+  st.className = "status";
+  const kind = kindOf(file.name);
+  if (!kind) { st.className = "status err"; st.textContent = "PDF, .txt, .md 파일만 올릴 수 있어요"; return; }
+  if (file.size > 10 * 1024 * 1024) { st.className = "status err"; st.textContent = "10MB 이하 파일만 올릴 수 있어요"; return; }
+  try {
+    st.innerHTML = `<span class="dots">글자 읽는 중</span>`;
+    let pages;
+    // ===== [PDF 글자 뽑기] pdf.js 불러와서 읽기 =====
+    if (kind === "pdf") {
+      if (!pdfjs) {
+        pdfjs = await import("./vendor/pdf.min.mjs");
+        pdfjs.GlobalWorkerOptions.workerSrc = "./vendor/pdf.worker.min.mjs";
+      }
+      pages = await pdfToPages(pdfjs, new Uint8Array(await file.arrayBuffer()));
+    } else pages = textToPages(await file.text());
+    st.innerHTML = `<span class="dots">조각으로 나누고 검색용으로 저장하는 중</span>`;
+    // ===== [서버로 보내기] 조각 나누기·저장은 서버가 해요 =====
+    const r = await fetch("/api/docs", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: titleOf(file.name), kind, pages, owner: OWNER }),
+    }).then((r) => r.json());
+    if (r.error) throw new Error(r.error);
+    st.textContent = `"${r.title}"을 조각 ${r.chunk_count}개로 나눠 저장했어요. 이제 물어보세요.`;
+    loadDocs();
+  // ===== [오류 처리] 올리기 실패 메시지 =====
+  } catch (e) {
+    st.className = "status err";
+    st.textContent = e.message || "올리기에 실패했어요";
+  }
+}
+// ===== [파일 고르기·끌어다 놓기] =====
+$("file").onchange = (e) => { if (e.target.files[0]) upload(e.target.files[0]); e.target.value = ""; };
+const drop = $("drop");
+drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); };
+
+// ---------- 묻기 ----------
+const where = (c) => [c.doc_title, c.page ? `${c.page}쪽` : null, c.section || null].filter(Boolean).join(" · ");
+const chunkCache = new Map();
+
+// ===== [질문 받기] 묻기 버튼·Enter =====
+async function ask() {
+  const q = $("q").value.trim();
+  if (!q || $("send").disabled) return;
+  $("empty")?.remove();
+  $("q").value = "";
+  $("send").disabled = true;
+  const log = $("log");
+  log.insertAdjacentHTML("beforeend", `<div class="q">${esc(q)}</div>`);
+  const box = document.createElement("div");
+  box.className = "a";
+  box.innerHTML = `<span class="dots">문서에서 찾는 중</span>`;
+  log.append(box);
+  box.scrollIntoView({ behavior: "smooth", block: "end" });
+  try {
+    // ===== [서버에 묻기] /api/ask =====
+    const r = await fetch("/api/ask", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ q, owner: OWNER, mode: $("mode").value }),
+    }).then((r) => r.json());
+    if (r.error) throw new Error(r.error);
+    r.retrieved.forEach((c) => chunkCache.set(c.id, c));
+    // ===== [답·근거 그리기] =====
+    box.innerHTML = `
+      <span class="badge ${r.found ? "ok" : "no"}">${r.found ? "문서에서 찾음" : "문서에 없음"}</span>
+      <div class="text">${esc(r.answer)}</div>
+      ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
+      ${r.citations.map((c) => `<button type="button" class="cite" data-chunk="${c.chunk_id}" data-quote="${esc(c.quote)}">
+          <span class="src">근거 · ${esc(where(c))}</span><span class="quote">“${esc(c.quote)}”</span></button>`).join("")}
+      <details><summary>검색으로 찾은 조각 ${r.retrieved.length}개 보기</summary><ol>
+        ${r.retrieved.map((c) => `<li><button type="button" data-chunk="${c.id}">${esc(where(c))}</button></li>`).join("")}
+      </ol></details>
+      <div class="meta">검색 ${r.search_ms}ms · 답 ${(r.ms / 1000).toFixed(1)}초 · 약 ${Math.max(1, Math.round(r.costKrw))}원${r.dropped ? ` · 원문과 안 맞는 근거 ${r.dropped}개 버림` : ""}</div>`;
+  // ===== [오류 처리] 묻기 실패 메시지 =====
+  } catch (e) {
+    box.innerHTML = `<span class="badge no">오류</span><div class="text">${esc(e.message || "잠시 뒤 다시 해 주세요")}</div>`;
+  } finally {
+    $("send").disabled = false;
+    $("q").focus();
+  }
+}
+$("ask").onsubmit = (e) => { e.preventDefault(); ask(); };
+$("q").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(); } };
+
+// ---------- 근거 조각 전체 보기 (원문 문장 강조) ----------
+// ===== [근거 문장 대조] 원문에서 근거 문장 강조 =====
+function highlight(text, quote) {
+  if (!quote) return esc(text);
+  // 띄어쓰기·줄바꿈이 달라도 찾을 수 있게 글자 사이에 공백을 허용
+  const chars = [...quote.replace(/\s+/g, "")].map((ch) => ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const m = new RegExp(chars.join("\\s*")).exec(text);
+  if (!m) return esc(text);
+  return esc(text.slice(0, m.index)) + "<mark>" + esc(m[0]) + "</mark>" + esc(text.slice(m.index + m[0].length));
+}
+// ===== [근거 조각 창 열기] =====
+$("log").onclick = async (e) => {
+  const btn = e.target.closest("[data-chunk]");
+  if (!btn) return;
+  const id = Number(btn.dataset.chunk);
+  let c = chunkCache.get(id);
+  if (!c) c = await fetch(`/api/chunks/${id}?owner=${OWNER}`).then((r) => r.json());
+  $("dlgSrc").textContent = where(c);
+  $("dlgText").innerHTML = highlight(c.text, btn.dataset.quote);
+  $("dlg").showModal();
+  $("dlg").querySelector("mark")?.scrollIntoView({ block: "center" });
+};
+
+// ===== [처음 켤 때] 문서 목록 불러오기 =====
+loadDocs().catch(() => { $("docs").innerHTML = `<div class="empty">문서 목록을 불러오지 못했어요</div>`; });
+</script>
+</body>
+</html>

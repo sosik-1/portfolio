@@ -1,0 +1,15 @@
+﻿{
+  "name": "fixdesk",
+  "version": "1.0.0",
+  "description": "하자·AS 접수를 AI로 분류해 담당 팀에 넘기는 웹앱",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File dev.ps1",
+    "eval": "powershell -ExecutionPolicy Bypass -File eval.ps1",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.5.0"
+  }
+}

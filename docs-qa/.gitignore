@@ -1,0 +1,10 @@
+node_modules/
+.wrangler/
+.dev.vars
+eval/results/
+agent/.venv*/
+agent/python_modules/
+agent/.dev.vars
+agent/.wrangler/
+agent/eval/results/
+agent/dist/

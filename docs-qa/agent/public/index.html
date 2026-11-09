@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<title>경비 검수 에이전트</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+/* 이 화면에만 쓰는 모양 (색·글꼴·카드·버튼은 theme.css) */
+main.layout { display: grid; grid-template-columns: 430px 1fr; gap: 18px; padding-bottom: 18px; align-items: start; }
+@media (max-width: 920px) { main.layout { grid-template-columns: 1fr; } }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.flow li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; }
+.flow li b { display: block; font-size: 13.5px; }
+.flow li span { color: var(--muted); font-size: 12px; }
+.flow .arrow { border: 0; background: none; padding: 0; color: var(--muted); }
+textarea#text { width: 100%; min-height: 300px; font: 13.5px/1.7 ui-monospace, "D2Coding", Consolas, "Pretendard Variable", monospace; resize: vertical; }
+.samples { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.samples button { font-size: 13px; padding: 5px 11px; border-radius: 99px; background: var(--panel-soft); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.row small { color: var(--muted); }
+#result { min-height: 420px; }
+#result > p { font-size: 15.5px; line-height: 1.8; margin: 12px 0; }
+.result-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.result-head .meta { font-size: 13.5px; }
+.issue { border: 1px solid var(--line); border-left: 4px solid var(--warn); background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; margin-top: 10px; }
+.issue.bad { border-left-color: var(--bad); background: var(--bad-soft); }
+.issue .src { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+.issue blockquote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 8px 8px 0; color: var(--text); font-size: 14px; }
+.issue .fix { font-size: 14px; }
+.issue .fix b { color: var(--muted); font-weight: 600; }
+#result h3 { font-size: 14px; margin: 20px 0 8px; color: var(--muted); }
+ol.steps { list-style: none; padding: 0; margin: 0; counter-reset: s; font-size: 14px; }
+ol.steps li { position: relative; padding: 6px 0 6px 34px; border-left: 2px solid var(--line); margin-left: 11px; counter-increment: s; }
+ol.steps li::before { content: counter(s); position: absolute; left: -12px; top: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+ol.steps li:last-child { border-left-color: transparent; }
+ol.steps li.err { color: var(--bad); }
+ol.steps li.err::before { background: var(--bad-soft); color: var(--bad); }
+.mail { font-size: 13.5px; background: var(--panel-soft); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; white-space: pre-wrap; line-height: 1.7; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.stat { background: var(--panel-soft); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.stat b { display: block; font-size: 22px; letter-spacing: -0.02em; }
+.stat span { font-size: 12.5px; color: var(--muted); }
+td.wrap { white-space: normal; min-width: 260px; }
+#checks .badge { font-size: 12px; padding: 1px 9px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="https://docs-qa.dlalsrn08011.workers.dev"><span class="logo">규</span>사내 규정 AI <small>포트폴리오 데모</small></a>
+    <nav>
+      <a href="https://docs-qa.dlalsrn08011.workers.dev">문서 Q&A</a>
+      <a class="on" href="/">경비·견적 검수</a>
+    </nav>
+  </div>
+</header>
+<section class="hero wrap">
+  <h1>청구서를 넣으면, AI가 규정과 맞춰 검수해요</h1>
+  <p>Claude가 필요한 도구를 스스로 골라 써요. 계산과 과거 내역 조회는 코드·SQL이 정확하게 하고, 근거 문장은 서버가 규정 원문과 대조해요.</p>
+  <ul class="flow">
+    <li><b>규정 찾기</b><span>문서 Q&A 검색 API</span></li><li class="arrow">→</li>
+    <li><b>계산</b><span>요일·금액 (Python)</span></li><li class="arrow">→</li>
+    <li><b>과거 내역</b><span>SQL 조회</span></li><li class="arrow">→</li>
+    <li><b>기록</b><span>DB · 구글 시트</span></li><li class="arrow">→</li>
+    <li><b>알림</b><span>Slack</span></li>
+  </ul>
+  <ul class="chips">
+    <li>평가 24건 <b>24/24</b></li>
+    <li>한 건 평균 <b>약 20초</b></li>
+    <li>건당 약 <b>110원</b></li>
+  </ul>
+</section>
+<main class="layout wrap">
+  <section class="panel">
+    <h2>📝 검수할 문서</h2>
+    <div class="samples" id="samples"></div>
+    <textarea id="text" placeholder="경비 청구 내용이나 견적서를 붙여 넣으세요"></textarea>
+    <div class="row">
+      <label><input type="file" id="photo" accept="image/jpeg,image/png,image/webp"> <small>또는 영수증·견적서 사진</small></label>
+    </div>
+    <div class="row">
+      <button class="primary" id="go">검수하기</button>
+      <small>보통 20~40초 걸려요 · 한 건에 약 100원</small>
+    </div>
+  </section>
+  <section class="panel" id="result"><div class="empty">왼쪽 예시를 골라 [검수하기]를 눌러 보세요.<br>예시 회사 '(주)다온웍스'와 사람·업체 이름은 모두 지어낸 것이에요.</div></section>
+</main>
+<main class="wrap" style="padding-bottom:18px">
+  <section class="panel">
+    <h2>📊 검수 기록과 집계 (SQL)</h2>
+    <div class="stats" id="stats"></div>
+    <div class="tablewrap"><table id="checks"></table></div>
+  </section>
+</main>
+<footer class="site wrap">답과 판정은 Claude(Anthropic)가 만들고, 규정 근거 문장은 서버가 원문과 한 번 더 대조해요. 알림은 시스템이 정한 재무팀 Slack 채널로만 가요.</footer>
+
+<script>
+// ===== [화면 공통 도우미] =====
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const won = (n) => (n == null ? "-" : Number(n).toLocaleString() + "원");
+// DB 시각은 세계 표준시(UTC) → 한국 시간으로 보여줘요
+const kst = (t) => new Date(t.replace(" ", "T") + "Z").toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+const vclass = (v) => ({ "승인 가능": "v-ok", "보완 필요": "v-fix", "규정 위반": "v-bad" })[v] || "";
+
+// ===== [예시 문서 버튼] =====
+fetch("/samples.json").then((r) => r.json()).then((list) => {
+  $("samples").innerHTML = list.map((s, i) => `<button type="button" data-i="${i}">${esc(s.title)}</button>`).join("");
+  $("samples").onclick = (e) => { const i = e.target.dataset?.i; if (i != null) { $("text").value = list[i].text; $("photo").value = ""; } };
+});
+
+// ===== [사진 읽기] =====
+async function readPhoto() {
+  const f = $("photo").files[0];
+  if (!f) return null;
+  if (f.size > 5 * 1024 * 1024) throw new Error("사진은 5MB 이하만 돼요");
+  const data = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result.split(",")[1]); r.onerror = no; r.readAsDataURL(f); });
+  return { media_type: f.type, data };
+}
+
+// ===== [검수하기 버튼] 서버(/api/check)로 보내기 =====
+$("go").onclick = async () => {
+  const box = $("result");
+  $("go").disabled = true;
+  box.innerHTML = `<div class="empty dots">에이전트가 규정을 찾고 따져 보는 중</div>`;
+  try {
+    const image = await readPhoto();
+    const text = $("text").value.trim();
+    if (!text && !image) throw new Error("문서를 붙여 넣거나 사진을 올려 주세요");
+    const r = await fetch("/api/check", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, image }) }).then((r) => r.json());
+    if (r.error) throw new Error(r.error);
+    box.innerHTML = renderResult(r);
+    history.replaceState(null, "", `?id=${r.id}`);
+    loadChecks();
+  // ===== [오류 처리] 검수 실패 메시지 =====
+  } catch (e) {
+    box.innerHTML = `<span class="badge v-bad">오류</span><p>${esc(e.message)}</p>`;
+  } finally {
+    $("go").disabled = false;
+  }
+};
+
+// ===== [결과 그리기] =====
+// AI가 붙인 마크다운 강조(**, ##)를 떼요 (화면에 별표가 그대로 보이지 않게)
+const plain = (t) => String(t ?? "").replace(/\*\*/g, "").replace(/^#+\s*/gm, "");
+
+// 검수 결과 한 건을 그려요 (방금 검수한 것, 또는 ?id=번호 로 연 기록)
+function renderResult(r) {
+  const steps = r.steps || [];
+  return `
+      <div class="result-head"><span class="badge ${vclass(r.verdict)}">${esc(r.verdict)}</span>
+      <span class="meta">${esc(r.doc_type)} · ${esc(r.category)} · ${esc(r.employee || "")} ${esc(r.team ? "(" + r.team + ")" : "")} · ${won(r.amount)}</span></div>
+      <p>${esc(plain(r.message || r.summary))}</p>
+      ${r.issues.map((i) => `<div class="issue ${i.kind === "규정 위반" ? "bad" : ""}">
+          <b>${esc(i.kind)}</b> · ${esc(i.problem)}
+          <div class="src">근거 · ${esc(i.doc)} ${esc(i.section || "")}</div>
+          <blockquote>“${esc(i.quote)}”</blockquote>
+          <div class="fix"><b>할 일</b> ${esc(i.fix)}</div></div>`).join("")}
+      <h3>에이전트가 한 일 (${steps.length}단계)</h3>
+      ${steps.length ? `<ol class="steps">${steps.map((s) => `<li class="${s.error ? "err" : ""}">${esc(s.summary)}</li>`).join("")}</ol>` : `<p class="meta">이 기록은 단계를 저장하기 전에 만들어졌어요.</p>`}
+      ${r.mail ? `<h3>담당자에게 보낸 Slack 알림</h3><div class="mail"><b>${esc(r.mail.subject)}</b>\n${esc(r.mail.message)}</div>` : ""}
+      <div class="meta" style="margin-top:14px">${r.seconds}초 · 약 ${Math.round(r.cost_krw)}원 · 기록 #${r.id}</div>`;
+}
+
+// ===== [통계·최근 기록] =====
+async function loadChecks() {
+  const [c, rep] = await Promise.all([fetch("/api/checks").then((r) => r.json()), fetch("/api/report").then((r) => r.json())]);
+  const t = rep.totals || {};
+  const v = Object.fromEntries((rep.by_verdict || []).map((x) => [x.verdict, x.n]));
+  const top = (rep.top_rules || [])[0];
+  $("stats").innerHTML = `
+    <div class="stat"><b>${t.n || 0}건</b><span>검수한 문서</span></div>
+    <div class="stat"><b>${v["규정 위반"] || 0} / ${v["보완 필요"] || 0} / ${v["승인 가능"] || 0}</b><span>위반 / 보완 / 승인</span></div>
+    <div class="stat"><b>${(t.avg_seconds || 0).toFixed(0)}초</b><span>한 건 평균 시간</span></div>
+    <div class="stat"><b>${top ? esc(top.section) : "-"}</b><span>가장 자주 걸린 조항${top ? ` (${esc(top.doc)}, ${top.n}건)` : ""}</span></div>`;
+  $("checks").innerHTML = `<tr><th>#</th><th>시각</th><th>판정</th><th>종류</th><th>청구자</th><th>금액</th><th>요약</th><th>Slack</th><th>시트</th></tr>` +
+    (c.checks || []).map((x) => `<tr><td><a href="?id=${x.id}">#${x.id}</a></td><td>${esc(kst(x.created_at))}</td><td><span class="badge ${vclass(x.verdict)}" style="font-size:12px;padding:1px 8px">${esc(x.verdict)}</span></td>
+      <td>${esc(x.category)}</td><td>${esc(x.employee || "")}</td><td>${won(x.amount)}</td><td class="wrap">${esc(x.summary)}</td><td>${x.notified ? "보냄" : "-"}</td><td>${x.sheet_ok ? "기록" : "-"}</td></tr>`).join("");
+}
+loadChecks().catch(() => {});
+
+// ===== [기록 한 건 열기] ?id=번호로 들어왔을 때 =====
+// 시트의 '상세 보기' 링크(?id=번호)로 들어온 경우
+const openId = new URLSearchParams(location.search).get("id");
+if (openId) {
+  fetch(`/api/checks/${encodeURIComponent(openId)}`).then((r) => r.json()).then((r) => {
+    $("result").innerHTML = r.error ? `<span class="badge v-bad">없음</span><p>${esc(r.error)}</p>`
+      : `<div class="meta" style="margin:0 0 8px">검수 기록 #${r.id} · ${esc(kst(r.created_at))}</div>` + renderResult(r);
+  });
+}
+</script>
+</body>
+</html>

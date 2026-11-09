@@ -1,0 +1,9 @@
+[project]
+name = "expense-agent"
+version = "0.1.0"
+description = "경비 청구·견적서 검수 에이전트 (Claude tool use, Cloudflare Python Worker)"
+requires-python = ">=3.13"
+dependencies = ["httpx"]
+
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk"]

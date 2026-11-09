@@ -1,0 +1,32 @@
+name = "docs-qa"
+main = "src/index.js"
+compatibility_date = "2026-10-15"
+compatibility_flags = ["nodejs_compat"]
+
+# 실행 위치 고정: 한국 요청이 홍콩 데이터센터에서 처리되면 Anthropic API가 403(지원 안 되는 지역)으로 막아요.
+# (fixdesk에서 겪은 문제) 그래서 Anthropic API 서버 가까운 곳에서 실행되도록 고정해요.
+# 2026-11-07: hostname 방식이 홍콩(HKG)으로 잡혀 AI 403 → 미국 동부로 직접 지정
+[placement]
+region = "aws:us-east-1"
+
+# 화면 파일
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# 뜻 검색(임베딩)용 Cloudflare Workers AI. 로컬 개발 중에도 실제 Cloudflare에서 실행돼요(무료 한도 안).
+[ai]
+binding = "AI"
+
+# 문서·조각 저장소 (SQLite)
+[[d1_databases]]
+binding = "DB"
+database_name = "docs-qa-db"
+database_id = "4bf57dc5-a40d-4e97-bd82-f55585a97ce2" # 2026-11-06 wrangler d1 create docs-qa-db
+
+[vars]
+MAX_ASK_PER_DAY = "100" # 공개 사이트 하루 질문 한도 (약 4,000원)
+
+# 비밀값은 여기 적지 않아요:
+#   ANTHROPIC_API_KEY, ADMIN_TOKEN(예시 문서 올리기용)
+#   → 배포: wrangler secret put 이름 / 로컬: .dev.vars 파일

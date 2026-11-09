@@ -1,0 +1,10 @@
+node_modules/
+.dev.vars
+.wrangler/
+.n8n/
+.cache/
+records/
+*.log
+eval/results/
+wrangler.local.toml
+CLAUDE.md

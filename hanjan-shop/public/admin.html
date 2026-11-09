@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="only light">
+<title>한잔 운영실</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+  body { font-size: 15px; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 10px 22px; display:flex; align-items:center; gap:12px; position: sticky; top: 0; z-index: 10; flex-wrap: wrap; }
+  header h1 { font-size:17px; margin:0; display:flex; align-items:center; gap:8px; }
+  header h1 .logo { width: 26px; height: 26px; border-radius: 8px; background: #6b3f24; color: #fff; display: grid; place-items: center; font-size: 14px; }
+  header .sp { flex:1; }
+  header nav { display:flex; gap:4px; flex-wrap:wrap; }
+  header nav a { padding: 6px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600; }
+  header nav a:hover { background: var(--panel-soft); color: var(--text); }
+  header nav a.on { background: var(--accent-soft); color: var(--accent); }
+  .badge-n { display:inline-grid; place-items:center; min-width:18px; height:18px; border-radius:9px; background:var(--bad); color:#fff; font-size:11px; padding:0 5px; margin-left:3px; }
+  main { padding:20px 22px 40px; max-width:1300px; margin:0 auto; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px; }
+  .stat { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; box-shadow: var(--shadow); }
+  .stat b { display:block; font-size:24px; margin-top:2px; letter-spacing:-0.02em; }
+  .stat small { color:var(--muted); }
+  .stat.alert b { color:var(--bad); }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+  .chip { border:1px solid var(--line); background:var(--panel); border-radius:999px; padding:6px 14px; font-size:14px; }
+  .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight:700; }
+  .layout { display:grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap:16px; align-items:start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .list { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; box-shadow: var(--shadow); }
+  .item { display:grid; grid-template-columns: 52px 1fr auto; gap:10px; align-items:center; padding:12px 14px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .item:last-child { border-bottom:0; }
+  .item:hover { background: var(--panel-soft); }
+  .item.sel { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  .item .id { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .item .one { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid var(--line); white-space:nowrap; }
+  .u-긴급 { background:var(--bad); color:#fff; border-color:var(--bad); }
+  .u-보통 { background:var(--warn-soft); color:var(--warn); border-color:transparent; }
+  .u-낮음 { background:var(--panel-soft); color:var(--muted); }
+  .t-ok { background:var(--ok-soft); color:var(--ok); border-color:transparent; }
+  .t-bad { background:var(--bad-soft); color:var(--bad); border-color:transparent; }
+  .t-acc { background:var(--accent-soft); color:var(--accent); border-color:transparent; }
+  .detail { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px; position:sticky; top:68px; box-shadow: var(--shadow); max-height: calc(100vh - 90px); overflow:auto; }
+  .detail h2 { margin:0 0 4px; font-size:19px; }
+  .box { background:var(--panel-soft); border:1px solid var(--line); border-radius:10px; padding:12px; margin:10px 0; line-height:1.65; white-space:pre-wrap; }
+  .ai { background: var(--accent-soft); border-color: transparent; border-left: 4px solid var(--accent); }
+  .src { font-size:13px; background: var(--panel); border:1px dashed var(--line); border-radius:8px; padding:8px 10px; margin-top:6px; white-space:normal; }
+  .row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+  textarea { width:100%; min-height:150px; }
+  .events { margin:12px 0 0; padding:0; list-style:none; font-size:13px; color:var(--muted); }
+  .events li { padding:6px 0; border-top:1px dashed var(--line); }
+  .events b { color:var(--text); font-weight:600; margin-right:6px; }
+  .cards2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; }
+  .bars { display:grid; gap:6px; }
+  .bar { display:grid; grid-template-columns: 70px 1fr 90px; gap:8px; align-items:center; font-size:13px; }
+  .bar .track { background:var(--panel-soft); border-radius:6px; height:14px; overflow:hidden; }
+  .bar .fill { background:var(--accent); height:100%; border-radius:6px; }
+  .flow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:13px; color:var(--muted); }
+  .flow span { background:var(--panel-soft); border:1px solid var(--line); border-radius:8px; padding:3px 10px; color:var(--text); }
+  #login { max-width:360px; margin:12vh auto; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:26px; box-shadow: var(--shadow); }
+  #login h1 { font-size:20px; margin:0 0 6px; }
+  #login input { width:100%; }
+  .err { color:var(--bad); min-height:1.2em; margin-top:8px; }
+  .demo-tag { background:var(--warn-soft); color:var(--warn); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:700; }
+  .num { width:80px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+
+<form id="login" hidden>
+  <h1>한잔 운영실 로그인</h1>
+  <p class="meta" style="margin:0 0 12px">가상 원두 가게의 운영 자동화 화면이에요. 면접·시연용 비밀번호로는 보기만 할 수 있어요.</p>
+  <label for="pw" class="meta">비밀번호</label>
+  <input id="pw" type="password" autocomplete="current-password">
+  <div class="row"><button class="primary" type="submit">들어가기</button><a href="/" class="meta">← 가게로</a></div>
+  <div class="err" id="loginErr"></div>
+</form>
+
+<div id="app" hidden>
+  <header>
+    <h1><span class="logo">☕</span>한잔 운영실</h1><span class="demo-tag" id="demoTag" hidden>시연용 · 보기 전용</span>
+    <nav id="tabs">
+      <a href="#home" data-tab="home">오늘</a>
+      <a href="#orders" data-tab="orders">주문<span class="badge-n" id="nOrders" hidden></span></a>
+      <a href="#inquiries" data-tab="inquiries">문의<span class="badge-n" id="nInq" hidden></span></a>
+      <a href="#products" data-tab="products">재고<span class="badge-n" id="nLow" hidden></span></a>
+      <a href="#reorders" data-tab="reorders">재구매 안내</a>
+      <a href="#events" data-tab="events">처리 기록</a>
+    </nav>
+    <span class="sp"></span>
+    <a href="/" class="meta">가게 화면</a>
+    <button id="logout" type="button">나가기</button>
+  </header>
+  <main id="main"></main>
+</div>
+
+<script>
+// ===== [화면 도우미] =====
+// 작은 도구, 로그인 열쇠 기억, 주문 상태 목록
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const won = (n) => `${Number(n || 0).toLocaleString("ko-KR")}원`;
+const kst = (utc) => utc ? new Date(String(utc).replace(" ", "T") + "Z").toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+const ss = { get(k) { try { return sessionStorage.getItem(k) || ""; } catch { return ""; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch {} }, del(k) { try { sessionStorage.removeItem(k); } catch {} } };
+let key = ss.get("hanjan.admin"), role = null;
+const ORDER_STATUSES = ["결제 완료", "상품 준비", "배송 중", "배송 완료", "취소"];
+
+// ===== [관리자 로그인] =====
+// 서버에 요청할 때 비밀번호를 같이 보내고, 틀리면 로그인 화면으로
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { "content-type": "application/json", "x-admin-key": key } });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 || res.status === 429) { showLogin(data.error); throw new Error(data.error); }
+  if (!res.ok) throw new Error(data.error || "요청 실패");
+  return data;
+}
+function showLogin(msg) { ss.del("hanjan.admin"); key = ""; $("app").hidden = true; $("login").hidden = false; $("loginErr").textContent = msg || ""; $("pw").focus(); }
+$("login").onsubmit = async (e) => {
+  e.preventDefault(); key = $("pw").value;
+  try { await start(); ss.set("hanjan.admin", key); } catch {}
+};
+$("logout").onclick = () => showLogin("");
+async function start() {
+  role = (await api("/api/admin/me")).role;
+  $("demoTag").hidden = role !== "demo";
+  $("login").hidden = true; $("app").hidden = false;
+  route();
+}
+// ===== [시연용 가림] =====
+// 시연용 계정이면 버튼을 잠가요 (보기만)
+const isDemo = () => role === "demo";
+const ro = () => (isDemo() ? "disabled title='시연용은 볼 수만 있어요'" : "");
+
+// ===== [관리자 화면] =====
+// 메뉴 옆 숫자(할 일 개수)
+async function refreshBadges(d) {
+  d = d || await api("/api/admin/dashboard");
+  const set = (id, n) => { $(id).hidden = !n; $(id).textContent = n || ""; };
+  set("nOrders", (d.todo.to_prepare || 0) + (d.todo.to_ship || 0));
+  set("nInq", d.inq.open || 0);
+  set("nLow", d.lowStock.length);
+}
+
+// ===== [관리자 화면] =====
+// 오늘 현황
+// ───── 오늘 ─────
+async function viewHome() {
+  const d = await api("/api/admin/dashboard");
+  refreshBadges(d);
+  const maxSales = Math.max(1, ...d.week.map((w) => w.sales));
+  const asIs = d.inq.answered ? Math.round((d.inq.as_is / d.inq.answered) * 100) : null;
+  const conv = d.reorders.made ? Math.round((d.reorders.converted / d.reorders.made) * 100) : null;
+  $("main").innerHTML = `
+    <section class="stats">
+      <div class="stat"><small>오늘 주문 · 매출</small><b>${d.today.orders}건 · ${won(d.today.sales)}</b></div>
+      <div class="stat ${d.todo.to_prepare ? "alert" : ""}"><small>볶아서 보낼 주문</small><b>${d.todo.to_prepare || 0}건</b><small>보내기 전 ${d.todo.to_ship || 0}건</small></div>
+      <div class="stat ${d.inq.urgent ? "alert" : ""}"><small>답변 기다리는 문의</small><b>${d.inq.open || 0}건</b><small>긴급 ${d.inq.urgent || 0}건</small></div>
+      <div class="stat ${d.lowStock.length ? "alert" : ""}"><small>재고 부족 상품</small><b>${d.lowStock.length}개</b><small>${esc(d.lowStock.map((p) => p.name).join(", ") || "없음")}</small></div>
+    </section>
+    <section class="stats">
+      <div class="stat"><small>AI 답변 초안을 그대로 보낸 비율</small><b>${asIs == null ? "-" : asIs + "%"}</b><small>답변 ${d.inq.answered || 0}건 중 ${d.inq.as_is || 0}건</small></div>
+      <div class="stat"><small>문의 1건 AI 비용 · 속도</small><b>${d.inq.avg_cost ? `약 ${d.inq.avg_cost}원` : "-"}</b><small>${d.inq.avg_ms ? (d.inq.avg_ms / 1000).toFixed(1) + "초" : ""}</small></div>
+      <div class="stat"><small>평균 답변까지 걸린 시간</small><b>${d.inq.avg_answer_min == null ? "-" : d.inq.avg_answer_min + "분"}</b></div>
+      <div class="stat"><small>재구매 안내 → 다시 주문</small><b>${conv == null ? "-" : conv + "%"}</b><small>안내 ${d.reorders.made || 0}명 중 ${d.reorders.converted || 0}명</small></div>
+    </section>
+    <div class="cards2">
+      <div class="panel"><h2>최근 7일 매출</h2><div class="bars">${d.week.map((w) => `<div class="bar"><span>${w.day.slice(5)}</span><div class="track"><div class="fill" style="width:${(w.sales / maxSales) * 100}%"></div></div><span>${won(w.sales)}</span></div>`).join("") || '<p class="meta">아직 없어요</p>'}</div></div>
+      <div class="panel"><h2>문의 종류 (AI 분류)</h2><div class="bars">${d.byCategory.map((c) => `<div class="bar"><span>${esc(c.category)}</span><div class="track"><div class="fill" style="width:${(c.n / Math.max(...d.byCategory.map((x) => x.n))) * 100}%"></div></div><span>${c.n}건</span></div>`).join("") || '<p class="meta">아직 없어요</p>'}</div></div>
+      <div class="panel">
+        <h2>매일 아침 9시 자동 작업</h2>
+        <div class="flow"><span>재구매 안내 만들기</span>→<span>어제 판매 보고서</span>→<span>Slack 전송</span></div>
+        <p class="meta">원두가 곧 떨어질 손님을 골라 안내를 만들고, 어제 주문·매출·많이 팔린 상품·답변 대기 문의·재고 부족을 Slack으로 보내요. AI를 쓰지 않아 비용이 0원이에요.</p>
+        <div class="row"><button id="runRe" ${ro()}>재구매 안내 지금 실행</button><button id="runRep" ${ro()}>오늘 보고서 지금 보내기</button><button id="preview">보고서 미리보기</button></div>
+        <div id="runOut" class="meta"></div>
+      </div>
+      <div class="panel">
+        <h2>주문·문의가 들어오면</h2>
+        <div class="flow"><span>가게 화면</span>→<span>DB 저장</span>→<span>Slack 알림</span>+<span>구글 시트</span>+<span>노션 배송 보드</span></div>
+        <div class="flow" style="margin-top:8px"><span>문의</span>→<span>AI 분류 · 급한 정도</span>→<span>안내문 근거로 답변 초안</span>→<span>사람이 확인 후 보냄</span></div>
+        <p class="meta">재고가 기준 아래로 내려가면 Slack에 재고 알림이 가요. 각 연동 결과는 '처리 기록'에 남아요.</p>
+      </div>
+    </div>`;
+  const out = $("runOut");
+  $("runRe").onclick = async () => { out.textContent = "실행 중…"; const r = await api("/api/admin/run/reorders", { method: "POST" }); out.textContent = `재구매 안내 ${r.made}명 만듦 · Slack: ${r.slack}`; };
+  $("runRep").onclick = async () => { out.textContent = "보내는 중…"; const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); const r = await api("/api/admin/run/report", { method: "POST", body: JSON.stringify({ day: today }) }); out.textContent = `${r.day} 보고서 · 주문 ${r.orders}건 · ${won(r.sales)} · Slack: ${r.slack}`; };
+  $("preview").onclick = async () => {
+    const r = await api("/api/admin/report");
+    out.innerHTML = `<div class="box">📊 ${esc(r.day)} 판매 보고서\n주문 ${r.orders}건 (취소 ${r.cancelled}건) · 매출 ${won(r.sales)} · 객단가 ${won(r.avg)}\n재구매 안내로 온 주문 ${r.fromReorder}건\n많이 팔린 상품: ${esc(r.top.map((t) => `${t.name} ${t.qty}개`).join(", ") || "없음")}\n답변 기다리는 문의 ${r.openInquiries}건 (긴급 ${r.urgentInquiries}건)\n재고 부족: ${esc(r.lowStock.map((p) => `${p.name} ${p.stock}개`).join(", ") || "없음")}</div>`;
+  };
+}
+
+// ===== [관리자: 주문 관리] =====
+// 주문 목록·상세, 상태 바꾸기
+// ───── 주문 ─────
+let orderFilter = "할 일";
+async function viewOrders(selId) {
+  const list = await api(`/api/admin/orders?status=${encodeURIComponent(orderFilter === "전체" ? "" : orderFilter)}`);
+  $("main").innerHTML = `
+    <div class="filters">${["할 일", "전체", ...ORDER_STATUSES].map((f) => `<button class="chip ${f === orderFilter ? "on" : ""}" data-f="${f}">${f}</button>`).join("")}</div>
+    <div class="layout"><div class="list">${list.map((o) => `
+      <div class="item ${o.id === selId ? "sel" : ""}" data-id="${o.id}">
+        <span class="id">#${o.id}</span>
+        <div style="min-width:0"><div class="one"><b>${esc(o.name)}</b> · ${esc(o.items)}</div><div class="meta">${kst(o.created_at)} · ${won(o.total)} · ${esc(o.grind)}${o.from_reorder ? " · 🔁 재구매" : ""}</div></div>
+        <span class="tag ${o.status === "배송 완료" ? "t-ok" : o.status === "취소" ? "t-bad" : o.status === "결제 완료" ? "t-acc" : ""}">${esc(o.status)}</span>
+      </div>`).join("") || '<div class="empty">주문이 없어요</div>'}</div>
+    <aside class="detail" id="detail"><div class="empty">왼쪽에서 주문을 고르세요</div></aside></div>`;
+  document.querySelectorAll("[data-f]").forEach((b) => b.onclick = () => { orderFilter = b.dataset.f; viewOrders(); });
+  document.querySelectorAll(".item").forEach((el) => el.onclick = () => { history.replaceState(null, "", `#order-${el.dataset.id}`); viewOrders(+el.dataset.id); });
+  if (selId) orderDetail(selId);
+}
+async function orderDetail(id) {
+  const o = await api(`/api/admin/orders/${id}`);
+  const next = { "결제 완료": "상품 준비", "상품 준비": "배송 중", "배송 중": "배송 완료" }[o.status];
+  $("detail").innerHTML = `
+    <span class="meta">주문 #${o.id} · ${kst(o.created_at)}</span>
+    <h2>${esc(o.name)} · ${won(o.total)}</h2>
+    <div class="meta">${esc(o.phone)} · ${esc(o.address)}</div>
+    <div class="box">${o.items.map((i) => `${esc(i.name)} × ${i.qty}  (${won(i.price * i.qty)})`).join("\n")}\n분쇄: ${esc(o.grind)} · 배송비 ${o.shipping ? won(o.shipping) : "무료"}${o.memo ? `\n요청: ${esc(o.memo)}` : ""}</div>
+    ${o.from_reorder ? `<p class="meta">🔁 재구매 안내 #${o.from_reorder}을 보고 다시 주문한 손님이에요.</p>` : ""}
+    ${o.reorder ? `<p class="meta">이 주문으로 재구매 안내를 만들었어요 (다 떨어지는 날 ${esc(o.reorder.due_date)})${o.reorder.converted_order_id ? ` → 주문 #${o.reorder.converted_order_id}로 다시 주문함` : ""}</p>` : ""}
+    <div class="row">
+      <span class="tag ${o.status === "취소" ? "t-bad" : "t-acc"}">${esc(o.status)}</span>
+      ${next ? `<button class="primary" id="next" ${ro()}>${next}(으)로 바꾸기</button>` : ""}
+      ${o.status !== "취소" && o.status !== "배송 완료" ? `<button id="cancel" ${ro()}>취소 (재고 되돌림)</button>` : ""}
+    </div>
+    <p class="meta">상태를 바꾸면 노션 배송 보드의 '상태'도 바로 바뀌어요.</p>
+    ${o.inquiries.length ? `<h3 style="font-size:14px;margin:14px 0 0">이 주문의 문의</h3>${o.inquiries.map((q) => `<div class="meta"><a href="#inquiry-${q.id}">#${q.id} ${esc(q.summary)}</a> · ${esc(q.status)}</div>`).join("")}` : ""}
+    <ul class="events">${o.events.map((e) => `<li><b>${esc(e.kind)}</b>${kst(e.at)} · ${esc(e.detail)}</li>`).join("")}</ul>`;
+  const set = async (status) => { await api(`/api/admin/orders/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }); viewOrders(id); refreshBadges(); };
+  if ($("next")) $("next").onclick = () => set(next);
+  if ($("cancel")) $("cancel").onclick = () => confirm("이 주문을 취소할까요? 재고가 되돌아가요.") && set("취소");
+}
+
+// ===== [관리자: 문의 답변] =====
+// 문의 목록·상세, AI 초안 확인하고 답변 보내기
+// ───── 문의 ─────
+let inqFilter = "답변 대기";
+async function viewInquiries(selId) {
+  const list = await api(`/api/admin/inquiries?status=${encodeURIComponent(inqFilter === "전체" ? "" : inqFilter)}`);
+  $("main").innerHTML = `
+    <div class="filters">${["답변 대기", "답변 완료", "전체"].map((f) => `<button class="chip ${f === inqFilter ? "on" : ""}" data-f="${f}">${f}</button>`).join("")}</div>
+    <div class="layout"><div class="list">${list.map((q) => `
+      <div class="item ${q.id === selId ? "sel" : ""}" data-id="${q.id}">
+        <span class="id">#${q.id}</span>
+        <div style="min-width:0"><div class="one"><b>${esc(q.summary)}</b></div><div class="meta">${kst(q.created_at)} · ${esc(q.name)} · ${esc(q.category)}${q.order_id ? ` · 주문 #${q.order_id}` : ""}${q.needs_human ? " · 사람 판단 필요" : ""}</div></div>
+        <span class="tag ${q.status === "답변 완료" ? "t-ok" : "u-" + q.urgency}">${q.status === "답변 완료" ? (q.reply_edited ? "고쳐서 보냄" : "초안 그대로") : esc(q.urgency)}</span>
+      </div>`).join("") || '<div class="empty">문의가 없어요</div>'}</div>
+    <aside class="detail" id="detail"><div class="empty">왼쪽에서 문의를 고르세요</div></aside></div>`;
+  document.querySelectorAll("[data-f]").forEach((b) => b.onclick = () => { inqFilter = b.dataset.f; viewInquiries(); });
+  document.querySelectorAll(".item").forEach((el) => el.onclick = () => { history.replaceState(null, "", `#inquiry-${el.dataset.id}`); viewInquiries(+el.dataset.id); });
+  if (selId) inquiryDetail(selId);
+}
+async function inquiryDetail(id) {
+  const q = await api(`/api/admin/inquiries/${id}`);
+  const done = q.status === "답변 완료";
+  $("detail").innerHTML = `
+    <span class="meta">문의 #${q.id} · ${kst(q.created_at)} · ${esc(q.name)} ${esc(q.phone)}</span>
+    <h2>${esc(q.summary)}</h2>
+    <div class="row" style="margin-top:4px"><span class="tag u-${esc(q.urgency)}">${esc(q.urgency)}</span><span class="tag">${esc(q.category)}</span>${q.needs_human ? '<span class="tag t-bad">사람 판단 필요</span>' : ""}${q.order ? `<a class="tag" href="#order-${q.order.id}">주문 #${q.order.id} · ${esc(q.order.status)}</a>` : ""}</div>
+    <div class="box">${esc(q.message)}</div>
+    <div class="meta">AI 판단 이유: ${esc(q.reason)} ${q.ai_ms ? `(${(q.ai_ms / 1000).toFixed(1)}초 · 약 ${Number(q.ai_cost_krw).toFixed(1)}원)` : ""}</div>
+    ${done ? `<h3 style="font-size:14px;margin:14px 0 0">보낸 답변 <span class="tag ${q.reply_edited ? "" : "t-ok"}">${q.reply_edited ? "초안을 고쳐서 보냄" : "AI 초안 그대로"}</span></h3><div class="box">${esc(q.reply)}</div>${q.reply_edited && q.draft ? `<details><summary class="meta">AI 초안 보기</summary><div class="box">${esc(q.draft)}</div></details>` : ""}`
+      : `<h3 style="font-size:14px;margin:14px 0 4px">AI 답변 초안 <span class="meta">고쳐서 보내도 돼요</span></h3>
+         <textarea id="reply" ${ro()}>${esc(q.draft || "")}</textarea>
+         <div class="row"><button class="primary" id="send" ${ro()}>이대로 답변 보내기</button><span class="meta" id="sendOut"></span></div>`}
+    ${q.sources.length ? `<h3 style="font-size:14px;margin:14px 0 0">초안의 근거 (가게 안내문)</h3>${q.sources.map((s) => `<div class="src"><b>[${esc(s.id)}] ${esc(s.title)}</b><br>${esc(s.text)}</div>`).join("")}` : `<p class="meta">근거로 쓴 안내문이 없어요. 내용을 꼭 확인하세요.</p>`}
+    <ul class="events">${q.events.map((e) => `<li><b>${esc(e.kind)}</b>${kst(e.at)} · ${esc(e.detail)}</li>`).join("")}</ul>`;
+  if ($("send")) $("send").onclick = async () => {
+    try { await api(`/api/admin/inquiries/${id}/reply`, { method: "POST", body: JSON.stringify({ reply: $("reply").value }) }); viewInquiries(id); refreshBadges(); }
+    catch (e) { $("sendOut").textContent = e.message; }
+  };
+}
+
+// ===== [관리자: 재고] =====
+// 관리자 재고 화면, 재고 숫자 고치기
+// ───── 재고 ─────
+async function viewProducts() {
+  const list = await api("/api/admin/products");
+  $("main").innerHTML = `
+    <div class="panel"><h2>상품·재고</h2>
+    <p class="meta" style="margin-top:-6px">재고가 '알림 기준' 이하로 내려가는 순간 Slack에 재고 알림이 가요. 손님 화면에는 정확한 수 대신 '얼마 안 남음 / 품절'로 보여요.</p>
+    <div class="tablewrap"><table><thead><tr><th>상품</th><th>종류</th><th>가격</th><th>재고</th><th>알림 기준</th><th></th></tr></thead><tbody>
+    ${list.map((p) => `<tr><td><b>${esc(p.name)}</b> <span class="meta">${esc(p.unit)}</span></td><td>${esc(p.kind)}</td><td>${won(p.price)}</td>
+      <td><input class="num" type="number" min="0" value="${p.stock}" data-stock="${p.id}" ${ro()}> ${p.stock <= 0 ? '<span class="tag t-bad">품절</span>' : p.stock <= p.low_stock ? '<span class="tag u-보통">부족</span>' : ""}</td>
+      <td><input class="num" type="number" min="0" value="${p.low_stock}" data-low="${p.id}" ${ro()}></td>
+      <td><button data-save="${p.id}" ${ro()}>저장</button></td></tr>`).join("")}
+    </tbody></table></div></div>`;
+  document.querySelectorAll("[data-save]").forEach((b) => b.onclick = async () => {
+    const id = b.dataset.save;
+    await api(`/api/admin/products/${id}`, { method: "PATCH", body: JSON.stringify({ stock: +document.querySelector(`[data-stock="${id}"]`).value, low_stock: +document.querySelector(`[data-low="${id}"]`).value }) });
+    viewProducts(); refreshBadges();
+  });
+}
+
+// ===== [재구매 안내] =====
+// 재구매 안내 목록, 지금 실행 버튼
+// ───── 재구매 안내 ─────
+async function viewReorders() {
+  const list = await api("/api/admin/reorders");
+  $("main").innerHTML = `
+    <div class="panel"><h2>재구매 안내</h2>
+    <p class="meta" style="margin-top:-6px">주문한 원두 양으로 다 떨어지는 날을 계산해서(200g ≈ 2주), 3일 전에 안내를 만들어요. 그 사이 이미 다시 주문한 손님은 건너뛰어요. 실제 가게라면 이 문구를 알림톡·문자로 보내요.</p>
+    <div class="row" style="margin:0 0 10px"><button id="run" ${ro()}>지금 실행</button><span class="meta" id="out"></span></div>
+    ${list.length ? `<div class="tablewrap"><table><thead><tr><th>#</th><th>손님</th><th>지난 주문</th><th>다 떨어지는 날</th><th>결과</th></tr></thead><tbody>
+    ${list.map((r) => `<tr><td>${r.id}</td><td>${esc(r.name)}</td><td><a href="#order-${r.order_id}">#${r.order_id}</a> ${esc(r.items)}</td><td>${esc(r.due_date)}</td>
+      <td>${r.converted_order_id ? `<a class="tag t-ok" href="#order-${r.converted_order_id}">다시 주문함 #${r.converted_order_id}</a>` : '<span class="tag">기다리는 중</span>'}</td></tr>
+      <tr><td></td><td colspan="4" style="white-space:pre-wrap;color:var(--muted)">${esc(r.message)}</td></tr>`).join("")}
+    </tbody></table></div>` : '<div class="empty">아직 만든 안내가 없어요. \'지금 실행\'을 눌러 보세요.</div>'}</div>`;
+  $("run").onclick = async () => { const r = await api("/api/admin/run/reorders", { method: "POST" }); $("out").textContent = `${r.made}명 만듦 · Slack: ${r.slack}`; setTimeout(viewReorders, 900); };
+}
+
+// ===== [처리 기록] =====
+// ───── 처리 기록 ─────
+let evType = "";
+async function viewEvents() {
+  const list = await api(`/api/admin/events?type=${evType}`);
+  const name = { order: "주문", inquiry: "문의", product: "상품", system: "자동 작업" };
+  $("main").innerHTML = `
+    <div class="filters">${[["", "전체"], ["order", "주문"], ["inquiry", "문의"], ["product", "상품"], ["system", "자동 작업"]].map(([v, l]) => `<button class="chip ${v === evType ? "on" : ""}" data-t="${v}">${l}</button>`).join("")}</div>
+    <div class="panel"><div class="tablewrap"><table><thead><tr><th>시각</th><th>대상</th><th>일</th><th>내용</th></tr></thead><tbody>
+    ${list.map((e) => `<tr><td>${kst(e.at)}</td><td>${name[e.ref_type] || ""}${e.ref_id ? ` <a href="#${e.ref_type}-${e.ref_id}">#${e.ref_id}</a>` : ""}</td><td><b>${esc(e.kind)}</b></td><td style="white-space:normal">${esc(e.detail)}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
+  document.querySelectorAll("[data-t]").forEach((b) => b.onclick = () => { evType = b.dataset.t; viewEvents(); });
+}
+
+// ===== [화면 바꾸기·오류 처리] =====
+// 주소(#) 따라 화면을 고르고, 오류가 나면 화면에 안내
+// ───── 주소(#) 따라 화면 ─────
+async function route() {
+  const h = location.hash.slice(1) || "home";
+  let m, tab = h;
+  try {
+    if ((m = h.match(/^order-(\d+)$/))) { tab = "orders"; orderFilter = "전체"; await viewOrders(+m[1]); }
+    else if ((m = h.match(/^inquiry-(\d+)$/))) { tab = "inquiries"; inqFilter = "전체"; await viewInquiries(+m[1]); }
+    else if (h === "orders") await viewOrders();
+    else if (h === "inquiries") await viewInquiries();
+    else if (h === "products" || /^product-\d+$/.test(h)) { tab = "products"; await viewProducts(); }
+    else if (h === "reorders") await viewReorders();
+    else if (h === "events") await viewEvents();
+    else { tab = "home"; await viewHome(); }
+    if (tab !== "home") refreshBadges();
+  } catch (e) { if (key) $("main").innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+  document.querySelectorAll("[data-tab]").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
+}
+addEventListener("hashchange", () => { if (role) route(); });
+if (key) start().catch(() => {}); else showLogin("");
+</script>
+</body>
+</html>

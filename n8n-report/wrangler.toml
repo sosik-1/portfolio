@@ -1,0 +1,6 @@
+# 시연 페이지(site/)만 올리는 정적 사이트. AI는 부르지 않아요 (n8n 실행은 이 PC에서만)
+name = "n8n-report-demo"
+compatibility_date = "2026-10-15"
+
+[assets]
+directory = "./site"

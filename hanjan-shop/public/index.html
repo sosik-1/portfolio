@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>한잔로스터리</title>
+<meta name="description" content="시연용 가상 원두 가게. 주문·문의가 들어오면 뒤에서 운영 자동화가 돌아가요.">
+<link rel="preconnect" href="https://images.unsplash.com">
+<link rel="stylesheet" href="shop.css">
+</head>
+<body>
+<div class="announce"><div class="wrap">
+  <span><b>3만 원 이상 무료배송</b> · 평일 오후 2시 전 주문은 그날 볶아서 보내요</span>
+  <span class="demo">시연용 가상 가게 · 결제·배송 없음 · <a href="admin.html">운영 자동화 화면 보기</a></span>
+</div></div>
+<header class="top">
+  <div class="wrap bar">
+    <nav class="menu">
+      <a href="#/shop?kind=원두" data-nav="원두">원두</a>
+      <a href="#/shop?kind=드립백" data-nav="드립백">드립백</a>
+      <a href="#/shop?kind=도구" data-nav="도구">도구</a>
+      <a href="#/subscribe" data-nav="subscribe">정기배송</a>
+      <a href="#/help" data-nav="help">고객센터</a>
+    </nav>
+    <a class="logo" href="#/"><b>한잔로스터리</b><span>HANJAN ROASTERY</span></a>
+    <div class="icons">
+      <a href="#/mine" title="내 주문"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span class="label">내 주문</span></a>
+      <a href="#/cart" title="장바구니"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span class="count" id="cartCount" data-n="0">0</span><span class="label">장바구니</span></a>
+    </div>
+  </div>
+  <nav class="menu-m">
+    <a href="#/shop?kind=원두" data-nav="원두">원두</a><a href="#/shop?kind=드립백" data-nav="드립백">드립백</a><a href="#/shop?kind=도구" data-nav="도구">도구</a><a href="#/subscribe" data-nav="subscribe">정기배송</a><a href="#/help" data-nav="help">고객센터</a>
+  </nav>
+</header>
+<main id="app"></main>
+<footer class="site">
+  <div class="wrap">
+    <div class="cols">
+      <div class="brand"><b>한잔로스터리</b>매일 마시는 한 잔을 위해, 주문 받은 날 볶아서 보내는 작은 로스터리예요.</div>
+      <div><h4>고객센터</h4><p class="tel">1:1 문의</p><ul><li>평일 10:00 – 17:00</li><li>점심 12:30 – 13:30</li><li><a href="#/help">문의 남기기 →</a></li></ul></div>
+      <div><h4>쇼핑</h4><ul><li><a href="#/shop?kind=원두">원두</a></li><li><a href="#/shop?kind=드립백">드립백</a></li><li><a href="#/shop?kind=도구">도구</a></li><li><a href="#/subscribe">정기배송</a></li></ul></div>
+      <div><h4>안내</h4><ul><li><a href="#/help">배송·교환 안내</a></li><li><a href="#/mine">내 주문 조회</a></li><li><a href="admin.html">운영 자동화(관리자)</a></li></ul></div>
+    </div>
+    <div class="legal">
+      <span>한잔로스터리는 포트폴리오 시연을 위해 지어낸 가게예요. 사업자 정보가 없고, 상품·손님·주문은 모두 예시 데이터이며 실제 결제·배송은 일어나지 않아요.</span>
+      <span id="credits"></span>
+    </div>
+  </div>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== [화면 도우미] =====
+// 서버에 요청 보내기, 알림 띄우기, 브라우저 저장소 같은 작은 도구
+// ───── 작은 도우미 ─────
+const $app = document.getElementById("app");
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const won = (n) => `${Number(n || 0).toLocaleString("ko-KR")}원`;
+const kst = (utc) => new Date(String(utc).replace(" ", "T") + "Z").toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+function toast(html) { const t = document.getElementById("toast"); t.innerHTML = html; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2600); }
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { "content-type": "application/json" } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "요청이 실패했어요");
+  return data;
+}
+// 브라우저 저장소는 막혀 있을 수 있어서(사생활 보호 창 등) 항상 try로 감싸요
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+// ===== [사진·맛 정보] =====
+// 상품 사진과 산지·맛 점수 (화면용)
+// ───── 사진 (Unsplash 무료 사진, 작가 표시) ─────
+const photo = (id, w = 800) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=75`;
+const SCENE = {
+  hero: ["1511537190424-bbbab87ac5eb", "Yanapi Senaud"],
+  story: ["1606310553667-8f636527a0e7", "Jon Stanford"],
+  sub: ["1541469406036-71229832e06e", "Eiliv Aceron"],
+  beans: ["1561986810-4f3ba2f46ceb", "Battlecreek Coffee Roasters"],
+  drip: ["1758221054731-744af4bf4d68", "Marie G."],
+  tools: ["1537130508299-46ab547b4be3", "Gregory Hayes"],
+};
+// 상품별 사진·산지·맛 (1~5). 맛 정보는 화면용이라 여기 둬요
+const META = {
+  yirgacheffe: { img: "1737064004501-6fc2b23d20d6", by: "Maria Kovalets", origin: "ETHIOPIA · 워시드", acid: 5, sweet: 3, body: 2, best: 1 },
+  "kenya-aa": { img: "1649372639640-6402377f3b28", by: "Nick Harsell", origin: "KENYA · 워시드", acid: 5, sweet: 3, body: 3 },
+  colombia: { img: "1540965555-ef9a836372ed", by: "Phil Desforges", origin: "COLOMBIA · 워시드", acid: 3, sweet: 4, body: 3, best: 2 },
+  "brazil-500": { img: "1587049016823-69ef9d68bd44", by: "Mockup Graphics", origin: "BRAZIL · 내추럴", acid: 1, sweet: 3, body: 4, best: 3 },
+  house: { img: "1708746333892-f01eee85b7a4", by: "Latika Sarker", origin: "HOUSE BLEND", acid: 2, sweet: 4, body: 4, best: 4 },
+  decaf: { img: "1776176623814-4fae43da6a2a", by: "Thomas Griggs", origin: "COLOMBIA · 디카페인", acid: 2, sweet: 3, body: 3 },
+  coldbrew: { img: "1628546459752-b92e62a89cd8", by: "Brunno Tozzo", origin: "COLD BREW BLEND", acid: 1, sweet: 3, body: 5 },
+  dripbag: { img: "1495862433577-132cf20d7902", by: "Nathan Dumlao", origin: "DRIP BAG · 10개입" },
+  dripper: { img: "1758221052634-33f352d1318b", by: "Marie G.", origin: "BREWING TOOL" },
+  filter: { img: "1442512595331-e89e73853f31", by: "Karl Fredrickson", origin: "BREWING TOOL" },
+};
+const meta = (p) => META[p.slug] || { img: SCENE.beans[0], origin: p.kind };
+const TASTES = [
+  { key: "acid", icon: "🍋", title: "산뜻한 산미", sub: "과일·꽃향, 핸드드립", test: (m, p) => m.acid >= 4 },
+  { key: "nutty", icon: "🥜", title: "고소하고 달콤한", sub: "라테·아메리카노", test: (m, p) => m.acid <= 2 && m.sweet >= 3 && p.slug !== "decaf" },
+  { key: "body", icon: "🍫", title: "진하고 묵직한", sub: "에스프레소·콜드브루", test: (m) => m.body >= 4 },
+  { key: "decaf", icon: "🌙", title: "디카페인", sub: "저녁에도 편하게", test: (m, p) => p.slug === "decaf" },
+];
+document.getElementById("credits").textContent = "사진: Unsplash — " + [...new Set([...Object.values(SCENE).map((s) => s[1]), ...Object.values(META).map((m) => m.by)])].join(", ");
+
+// ===== [장바구니] =====
+// 담은 상품을 브라우저에 저장해요
+// ───── 장바구니 ─────
+let cart = store.get("hanjan_cart", []); // [{product_id, qty}]
+let fromOrder = store.get("hanjan_from", null); // 재구매 안내 링크에서 다시 담았으면 {id, secret}
+function saveCart() {
+  store.set("hanjan_cart", cart); store.set("hanjan_from", fromOrder);
+  const n = cart.reduce((s, i) => s + i.qty, 0), el = document.getElementById("cartCount");
+  el.textContent = n; el.dataset.n = n;
+}
+function addToCart(id, qty = 1) {
+  const it = cart.find((i) => i.product_id === id);
+  if (it) it.qty = Math.min(10, it.qty + qty); else cart.push({ product_id: id, qty: Math.min(10, qty) });
+  saveCart();
+}
+
+// ===== [상품 목록] =====
+// 가게 정보 불러오기, 상품 카드 그리기
+// ───── 데이터 ─────
+let products = [], policy = null;
+const byId = (id) => products.find((p) => p.id === id);
+async function load() { [products, policy] = await Promise.all([api("/api/products"), api("/api/policy")]); }
+
+const bagIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>`;
+function card(p) {
+  const m = meta(p);
+  const out = p.stock_state === "품절";
+  const badges = [m.best ? '<span class="bdg best">BEST</span>' : "", out ? '<span class="bdg out">품절</span>' : p.stock_state === "얼마 안 남음" ? '<span class="bdg low">품절 임박</span>' : "", p.roast ? `<span class="bdg">${esc(p.roast)}</span>` : ""].join("");
+  return `<a class="card ${out ? "out" : ""}" href="#/p/${esc(p.slug)}">
+    <div class="ph"><img loading="lazy" src="${photo(m.img, 600)}" alt="${esc(p.name)}"><div class="badges">${badges}</div>
+      ${out ? "" : `<button class="quick" data-quick="${p.id}" title="장바구니 담기" aria-label="${esc(p.name)} 장바구니 담기">${bagIcon}</button>`}</div>
+    <div class="info"><span class="origin">${esc(m.origin)}</span><span class="name">${esc(p.name)}</span>${p.notes ? `<span class="notes">${esc(p.notes)}</span>` : ""}<span class="price">${won(p.price)}<small>${esc(p.unit)}</small></span></div>
+  </a>`;
+}
+function bindQuick() {
+  $app.querySelectorAll("[data-quick]").forEach((b) => b.onclick = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const p = byId(+b.dataset.quick); addToCart(p.id, 1);
+    toast(`${esc(p.name)}을(를) 담았어요 <a href="#/cart">장바구니 보기</a>`);
+  });
+}
+
+// ===== [첫 화면] =====
+// ───── 첫 화면 ─────
+function viewHome() {
+  const best = products.filter((p) => meta(p).best).sort((a, b) => meta(a).best - meta(b).best);
+  $app.innerHTML = `
+    <section class="hero"><img src="${photo(SCENE.hero[0], 1800)}" alt="">
+      <div class="wrap">
+        <div class="eyebrow">FRESHLY ROASTED · SINCE TODAY</div>
+        <h1>주문 받은 날 볶아서,<br>내일 아침 한 잔으로</h1>
+        <p>매주 고른 생두를 소량씩 볶아요. 평일 오후 2시까지 주문하면 그날 볶아 보내 드려요.</p>
+        <div class="btns"><a class="btn light" href="#/shop?kind=원두">원두 고르기</a><a class="btn ghost-w" href="#/subscribe">정기배송 알아보기</a></div>
+      </div>
+    </section>
+    <section class="perks"><div class="wrap">
+      <div class="perk"><span class="ic">🔥</span><div><b>당일 로스팅</b><span>평일 2시 전 주문</span></div></div>
+      <div class="perk"><span class="ic">📦</span><div><b>3만 원 이상 무료배송</b><span>다음 날 도착</span></div></div>
+      <div class="perk"><span class="ic">⚙️</span><div><b>분쇄 무료</b><span>홀빈부터 에스프레소까지</span></div></div>
+      <div class="perk"><span class="ic">🔔</span><div><b>다 떨어질 때쯤 알림</b><span>재구매를 한 번에</span></div></div>
+    </div></section>
+    <section class="section"><div class="wrap">
+      <div class="sec-head"><div><div class="eyebrow">BEST SELLER</div><h2>이번 주 가장 많이 찾은 원두</h2></div><a class="more" href="#/shop?kind=원두">원두 전체 보기</a></div>
+      <div class="grid">${best.map(card).join("")}</div>
+    </div></section>
+    <section class="section tight" style="background:var(--paper)"><div class="wrap">
+      <div class="sec-head"><div><div class="eyebrow">FIND YOUR TASTE</div><h2>취향으로 고르기</h2></div></div>
+      <div class="taste-pick">${TASTES.map((t) => `<button data-taste="${t.key}"><i>${t.icon}</i><b>${t.title}</b><span>${t.sub}</span></button>`).join("")}</div>
+    </div></section>
+    <section class="section"><div class="wrap">
+      <div class="sec-head"><div><div class="eyebrow">SHOP</div><h2>무엇을 찾으세요?</h2></div></div>
+      <div class="tiles">
+        <a class="tile" href="#/shop?kind=원두"><img loading="lazy" src="${photo(SCENE.beans[0], 700)}" alt=""><div><b>원두</b><span>싱글 오리진 · 블렌드 · 디카페인</span></div></a>
+        <a class="tile" href="#/shop?kind=드립백"><img loading="lazy" src="${photo(SCENE.drip[0], 700)}" alt=""><div><b>드립백</b><span>컵에 걸고 물만 부으면 끝</span></div></a>
+        <a class="tile" href="#/shop?kind=도구"><img loading="lazy" src="${photo(SCENE.tools[0], 700)}" alt=""><div><b>도구</b><span>드리퍼 · 필터</span></div></a>
+      </div>
+    </div></section>
+    <section class="section tight"><div class="wrap">
+      <div class="sub-banner">
+        <div class="txt"><div class="eyebrow">SUBSCRIPTION</div><h2>떨어지기 전에,<br>알아서 도착하는 원두</h2>
+          <p>2주 또는 4주마다 갓 볶은 원두를 자동으로 보내 드려요.</p>
+          <ul><li>정기배송은 항상 5% 할인</li><li>배송 3일 전까지 건너뛰기·주기 변경·해지</li><li>원두 바꾸기도 자유롭게</li></ul>
+          <div class="btns"><a class="btn light" href="#/subscribe">자세히 보기</a></div></div>
+        <img loading="lazy" src="${photo(SCENE.sub[0], 1000)}" alt="">
+      </div>
+    </div></section>
+    <section class="section"><div class="wrap story">
+      <img loading="lazy" src="${photo(SCENE.story[0], 1100)}" alt="">
+      <div><div class="eyebrow" style="color:var(--accent)">OUR STORY</div>
+        <h2>많이 볶지 않아요.<br>매일 필요한 만큼만.</h2>
+        <p>한 번에 많이 볶아 두면 편하지만, 원두는 볶은 날부터 2~4주가 가장 맛있어요. 그래서 들어온 주문만큼만 그날 볶아요.</p>
+        <p>처음이라 고르기 어렵다면 1:1 문의로 평소 마시는 방법을 알려 주세요. 맞는 원두와 분쇄 굵기를 골라 드릴게요.</p>
+        <div class="nums"><div><b>당일</b><span>로스팅·출고</span></div><div><b>2~4주</b><span>가장 맛있는 기간</span></div><div><b>7종</b><span>원두 라인업</span></div></div>
+      </div>
+    </div></section>`;
+  bindQuick();
+  $app.querySelectorAll("[data-taste]").forEach((b) => b.onclick = () => { location.hash = `#/shop?taste=${b.dataset.taste}`; });
+}
+
+// ===== [상품 목록] =====
+// 목록 화면과 상품 상세 화면
+// ───── 상품 목록 ─────
+function viewShop(qs) {
+  const kind = qs.get("kind") || "", taste = TASTES.find((t) => t.key === qs.get("taste"));
+  let list = products.filter((p) => !kind || p.kind === kind);
+  if (taste) list = list.filter((p) => p.kind === "원두" && taste.test(meta(p), p));
+  const title = taste ? `${taste.icon} ${taste.title}` : kind || "전체 상품";
+  $app.innerHTML = `
+    <div class="wrap"><div class="crumb"><a href="#/">홈</a> › ${esc(title)}</div>
+      <div class="sec-head" style="margin-bottom:18px"><div><h2 style="margin:0">${esc(title)}</h2><span class="muted small">${list.length}개 상품</span></div>
+        <div class="tabs">${["", "원두", "드립백", "도구"].map((k) => `<button class="${!taste && k === kind ? "on" : ""}" data-kind="${k}">${k || "전체"}</button>`).join("")}</div></div>
+      ${kind === "원두" || taste ? `<div class="tabs" style="margin:-4px 0 24px">${TASTES.map((t) => `<button class="${taste?.key === t.key ? "on" : ""}" data-taste="${t.key}">${t.icon} ${t.title}</button>`).join("")}</div>` : ""}
+      <div class="grid" style="padding-bottom:60px">${list.map(card).join("") || '<p class="muted">맞는 상품이 없어요.</p>'}</div>
+    </div>`;
+  bindQuick();
+  $app.querySelectorAll("[data-kind]").forEach((b) => b.onclick = () => { location.hash = b.dataset.kind ? `#/shop?kind=${b.dataset.kind}` : "#/shop"; });
+  $app.querySelectorAll("[data-taste]").forEach((b) => b.onclick = () => { location.hash = `#/shop?taste=${b.dataset.taste}`; });
+}
+
+// ───── 상품 상세 ─────
+function meterRow(label, v) { return `<div class="meter"><span>${label}</span><div class="dots">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= v ? "on" : ""}"></i>`).join("")}</div></div>`; }
+function viewProduct(slug) {
+  const p = products.find((x) => x.slug === slug);
+  if (!p) return viewMissing();
+  const m = meta(p), out = p.stock_state === "품절", bean = p.kind === "원두";
+  let qty = 1;
+  const pol = (id) => policy.policy.find((x) => x.id === id)?.text || "";
+  document.body.classList.add("has-sticky");
+  $app.innerHTML = `
+    <div class="wrap"><div class="crumb"><a href="#/">홈</a> › <a href="#/shop?kind=${esc(p.kind)}">${esc(p.kind)}</a> › ${esc(p.name)}</div>
+    <div class="pdp">
+      <div class="gallery"><img src="${photo(m.img, 1100)}" alt="${esc(p.name)}"></div>
+      <div>
+        <span class="eyebrow" style="color:var(--accent)">${esc(m.origin)}</span>
+        <h1>${esc(p.name)}</h1>
+        ${p.notes ? `<p class="notes">${esc(p.notes)}</p>` : ""}
+        ${m.acid ? `<div class="meters">${meterRow("산미", m.acid)}${meterRow("단맛", m.sweet)}${meterRow("바디", m.body)}</div>` : ""}
+        <div class="price">${won(p.price)}<small>${esc(p.unit)}</small></div>
+        <p class="desc">${esc(p.description)}</p>
+        <dl class="specs">${p.roast ? `<dt>로스팅</dt><dd>${esc(p.roast)}</dd>` : ""}<dt>용량</dt><dd>${esc(p.unit)}</dd>${bean ? `<dt>분쇄</dt><dd>주문서에서 선택 (무료)</dd><dt>추천 추출</dt><dd>${m.acid >= 4 ? "핸드드립" : m.body >= 4 ? "에스프레소 · 모카포트 · 콜드브루" : "핸드드립 · 에스프레소"}</dd>` : ""}<dt>재고</dt><dd>${out ? '<span class="pill bad">품절</span>' : p.stock_state === "얼마 안 남음" ? '<span class="pill bad">품절 임박</span>' : "바로 보낼 수 있어요"}</dd></dl>
+        <div class="buy">
+          <div class="row"><div class="qty"><button id="minus" aria-label="빼기">−</button><span id="q">1</span><button id="plus" aria-label="더하기">+</button></div><button class="btn line" id="add" ${out ? "disabled" : ""}>장바구니</button></div>
+          <button class="btn wide accent" id="now" ${out ? "disabled" : ""}>${out ? "품절" : "바로 구매하기"}</button>
+        </div>
+        <div class="benefit"><span><b>오늘 오후 2시 전 주문하면</b> 오늘 볶아서 보내요</span><span>3만 원 이상 무료배송 · 아니면 배송비 3,000원</span>${bean ? `<span>1봉지에 보통 ${p.unit === "500g" ? "4~5주" : "2주"}쯤 드세요. 다 떨어질 때쯤 다시 주문 안내를 보내 드려요.</span>` : ""}</div>
+        <div class="acc">
+          <details open><summary>상품 설명</summary><div class="body"><span>${esc(p.description)}</span>${bean ? `<span>${esc(pol("상품-2"))}</span>` : ""}</div></details>
+          ${bean ? `<details><summary>맛있게 내리는 법</summary><div class="body"><span>${esc(pol("상품-3"))}</span><span>${esc(pol("상품-1"))}</span></div></details>` : ""}
+          <details><summary>배송 안내</summary><div class="body"><span>${esc(pol("배송-1"))}</span><span>${esc(pol("배송-2"))}</span></div></details>
+          <details><summary>교환·환불 안내</summary><div class="body"><span>${esc(pol("교환-1"))}</span><span>${esc(pol("교환-2"))}</span></div></details>
+        </div>
+      </div>
+    </div></div>
+    <div class="sticky-buy"><button class="btn line" id="addM" ${out ? "disabled" : ""}>장바구니</button><button class="btn accent" id="nowM" ${out ? "disabled" : ""}>${out ? "품절" : `${won(p.price)} 구매하기`}</button></div>`;
+  const q = document.getElementById("q");
+  document.getElementById("minus").onclick = () => { qty = Math.max(1, qty - 1); q.textContent = qty; };
+  document.getElementById("plus").onclick = () => { qty = Math.min(10, qty + 1); q.textContent = qty; };
+  const add = () => { addToCart(p.id, qty); toast(`${esc(p.name)} ${qty}개를 담았어요 <a href="#/cart">장바구니 보기</a>`); };
+  const now = () => { addToCart(p.id, qty); location.hash = "#/cart"; };
+  document.getElementById("add").onclick = add; document.getElementById("addM").onclick = add;
+  document.getElementById("now").onclick = now; document.getElementById("nowM").onclick = now;
+}
+
+// ===== [정기배송 안내] =====
+// ───── 정기배송 안내 ─────
+function viewSubscribe() {
+  const beans = products.filter((p) => p.kind === "원두");
+  $app.innerHTML = `
+    <div class="help-hero"><div class="wrap"><div class="eyebrow" style="color:var(--accent)">SUBSCRIPTION</div><h1>정기배송</h1>
+      <p>원두를 2주 또는 4주마다 자동으로 보내 드려요. 정기배송은 항상 5% 할인되고, 다음 배송 3일 전까지 건너뛰기·주기 변경·해지를 할 수 있어요.</p></div></div>
+    <div class="wrap" style="padding-bottom:60px">
+      <div class="note" style="margin-bottom:24px">시연용 가게라 정기배송 신청은 아직 열지 않았어요. 대신 <b>한 번 주문하면 다 떨어질 때쯤 재구매 안내</b>가 자동으로 만들어져요 (운영 자동화 화면의 '재구매 안내'에서 볼 수 있어요).</div>
+      <div class="sec-head"><div><h2 style="margin:0">정기배송으로 많이 받는 원두</h2></div></div>
+      <div class="grid">${beans.slice(0, 4).map(card).join("")}</div>
+    </div>`;
+  bindQuick();
+}
+
+// ===== [주문 받기] =====
+// 예시 손님 채우기, 장바구니·주문서 화면
+// 예시 손님 (지어낸 이름·번호·주소). 시연하는 사람이 실제 개인정보를 넣지 않도록 버튼으로 채워요
+const SAMPLE_PEOPLE = [
+  { name: "김하늘", phone: "010-5521-0934", address: "서울 종로구 율곡로 10 501호" },
+  { name: "이도현", phone: "010-7340-2216", address: "경기 용인시 수지구 포은대로 80" },
+  { name: "박소율", phone: "010-6612-4471", address: "부산 해운대구 센텀중앙로 55" },
+];
+const pickSample = () => SAMPLE_PEOPLE[Math.floor(Math.random() * SAMPLE_PEOPLE.length)];
+
+// ───── 장바구니 + 주문서 ─────
+function viewCart() {
+  cart = cart.filter((i) => byId(i.product_id));
+  saveCart();
+  if (!cart.length) {
+    $app.innerHTML = `<div class="wrap" style="text-align:center;padding:90px 16px"><h1 class="page-title">장바구니가 비어 있어요</h1><p class="muted">마음에 드는 원두를 담아 보세요.</p><a class="btn" href="#/shop?kind=원두">원두 보러 가기</a></div>`;
+    return;
+  }
+  const subtotal = cart.reduce((s, i) => s + byId(i.product_id).price * i.qty, 0);
+  const shipping = subtotal >= policy.free_shipping ? 0 : policy.shipping_fee;
+  const hasBeans = cart.some((i) => byId(i.product_id).kind === "원두");
+  const pct = Math.min(100, (subtotal / policy.free_shipping) * 100);
+  $app.innerHTML = `
+    <div class="wrap">
+      <h1 class="page-title">주문하기</h1>
+      <div class="steps-bar"><b>01 장바구니·주문서</b><i>—</i><span>02 결제</span><i>—</i><span>03 주문 완료</span></div>
+      ${fromOrder ? `<div class="note ok" style="margin-bottom:18px">🔁 지난 주문 #${fromOrder.id}과 같은 상품을 담았어요. 이대로 주문하면 '재구매 안내로 온 주문'으로 기록돼요.</div>` : ""}
+      <form class="checkout" id="checkout">
+        <div style="display:grid;gap:20px">
+          <div class="box"><h3>담은 상품 ${cart.length}개</h3>
+            ${cart.map((i) => { const p = byId(i.product_id); return `
+              <div class="cart-line"><img src="${photo(meta(p).img, 200)}" alt="">
+                <div><div class="nm">${esc(p.name)}</div><div class="muted small">${esc(p.unit)} · ${won(p.price)}${p.stock_state === "품절" ? ' · <span class="pill bad">품절</span>' : ""}</div><button type="button" class="del" data-del="${p.id}">삭제</button></div>
+                <div class="right" style="display:grid;gap:8px;justify-items:end"><div class="qty sm"><button type="button" data-minus="${p.id}">−</button><span>${i.qty}</span><button type="button" data-plus="${p.id}">+</button></div><div class="lp">${won(p.price * i.qty)}</div></div>
+              </div>`; }).join("")}
+            <div class="free-bar">${shipping ? `<b>${won(policy.free_shipping - subtotal)}</b> 더 담으면 무료배송이에요` : "🎉 무료배송으로 보내 드려요"}<div class="track"><div class="fill" style="width:${pct}%"></div></div></div>
+          </div>
+          <div class="box form"><h3 style="margin:0">받는 분</h3>
+            <button type="button" class="linkish" id="sample">예시 손님으로 채우기 (지어낸 정보)</button>
+            <div class="two"><label>이름<input name="name" maxlength="30" required></label><label>연락처<input name="phone" inputmode="tel" placeholder="010-0000-0000" required></label></div>
+            <label>주소<input name="address" maxlength="120" required></label>
+            <label>배송 요청 사항 (선택)<input name="memo" maxlength="200" placeholder="예: 문 앞에 두고 가 주세요"></label>
+          </div>
+          <div class="box form" style="${hasBeans ? "" : "display:none"}"><h3 style="margin:0">원두 분쇄</h3>
+            <div class="grind-opts">${policy.grinds.map((g) => `<label><input type="radio" name="grind" value="${esc(g)}" ${g === "핸드드립용" ? "checked" : ""}>${esc(g)}</label>`).join("")}</div>
+            <span class="muted small">분쇄하면 향이 빨리 날아가요. 2주 안에 드실 양이면 분쇄해도 괜찮아요.</span>
+          </div>
+        </div>
+        <div class="box" style="position:sticky;top:96px;display:grid;gap:16px">
+          <h3 style="margin:0">결제 금액</h3>
+          <div class="sum"><div><span>상품 금액</span><span>${won(subtotal)}</span></div><div><span>배송비</span><span>${shipping ? won(shipping) : "무료"}</span></div><div class="total"><span>총 결제 금액</span><span>${won(subtotal + shipping)}</span></div></div>
+          <div class="err" id="err"></div>
+          <button class="btn wide accent" id="pay">${won(subtotal + shipping)} 결제하기</button>
+          <span class="muted small">시연용 가상 결제라 돈이 나가지 않아요. 주문하면 운영 화면·Slack·시트·노션에 바로 기록돼요.</span>
+        </div>
+      </form>
+    </div>`;
+  const re = () => viewCart();
+  $app.querySelectorAll("[data-minus]").forEach((b) => b.onclick = () => { const it = cart.find((i) => i.product_id === +b.dataset.minus); it.qty = Math.max(1, it.qty - 1); saveCart(); re(); });
+  $app.querySelectorAll("[data-plus]").forEach((b) => b.onclick = () => { const it = cart.find((i) => i.product_id === +b.dataset.plus); it.qty = Math.min(10, it.qty + 1); saveCart(); re(); });
+  $app.querySelectorAll("[data-del]").forEach((b) => b.onclick = () => { cart = cart.filter((i) => i.product_id !== +b.dataset.del); if (!cart.length) fromOrder = null; saveCart(); re(); });
+  const f = document.getElementById("checkout"), el = f.elements;
+  const last = store.get("hanjan_me", null);
+  if (last) { el.name.value = last.name; el.phone.value = last.phone; el.address.value = last.address || ""; }
+  document.getElementById("sample").onclick = () => { const s = pickSample(); el.name.value = s.name; el.phone.value = s.phone; el.address.value = s.address; };
+  // ===== [가상 결제] =====
+  // 결제 버튼을 누르면 주문을 서버로 보내요 (돈은 안 나감)
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("pay"); btn.disabled = true; btn.textContent = "주문하는 중…";
+    document.getElementById("err").textContent = "";
+    try {
+      const body = { name: el.name.value, phone: el.phone.value, address: el.address.value, grind: el.grind.value || "핸드드립용", memo: el.memo.value, items: cart, from_order: fromOrder };
+      const r = await api("/api/orders", { method: "POST", body: JSON.stringify(body) });
+      store.set("hanjan_me", { name: el.name.value, phone: el.phone.value, address: el.address.value });
+      rememberMine({ type: "order", id: r.id, secret: r.secret, at: Date.now(), label: won(r.total) });
+      cart = []; fromOrder = null; saveCart();
+      location.hash = `#/order/${r.id}/${r.secret}?new=1`;
+    } catch (err) {
+      document.getElementById("err").textContent = err.message;
+      btn.disabled = false; btn.textContent = "다시 결제하기";
+      products = await api("/api/products"); // 재고가 바뀌었을 수 있어요
+    }
+  };
+}
+
+function rememberMine(x) { const list = store.get("hanjan_mine", []); list.unshift(x); store.set("hanjan_mine", list.slice(0, 20)); }
+
+// ===== [주문 조회] =====
+// 주문 상태 단계 보기, 내 주문·문의 목록
+// ───── 주문 조회 ─────
+const STEPS = ["결제 완료", "상품 준비", "배송 중", "배송 완료"];
+async function viewOrder(id, secret, isNew) {
+  $app.innerHTML = `<div class="wrap"><p class="muted" style="padding:60px 0">주문을 불러오는 중…</p></div>`;
+  let o;
+  try { o = await api(`/api/orders/${id}?secret=${encodeURIComponent(secret)}`); } catch (e) { return viewMissing(e.message); }
+  const at = STEPS.indexOf(o.status);
+  const canReorder = o.items.some((i) => i.active && i.in_stock);
+  $app.innerHTML = `
+    <div class="wrap" style="padding-bottom:60px">
+      ${isNew ? `<div style="text-align:center;padding:36px 0 10px"><div style="font-size:40px">☕</div><h1 class="page-title" style="margin-top:6px">주문이 완료됐어요</h1><p class="muted" style="margin:0">주문 번호 #${o.id} · 운영 화면에 바로 보이고, 가게 Slack 채널로 알림이 갔어요.</p></div>` : `<h1 class="page-title">주문 #${o.id}</h1>`}
+      <div class="checkout" style="margin-top:24px">
+        <div class="box">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px"><b style="font-size:18px">${o.status === "취소" ? "취소된 주문" : esc(o.status)}</b><span class="muted small">${kst(o.created_at)} 주문</span></div>
+          ${o.status === "취소" ? `<div class="note bad" style="margin-top:12px">이 주문은 취소됐어요.</div>` : `<div class="progress">${STEPS.map((st, i) => `<div class="${i <= at ? "done" : ""}">${st}</div>`).join("")}</div>`}
+          <div style="margin-top:18px">${o.items.map((i) => { const p = byId(i.product_id); return `<div class="cart-line" style="grid-template-columns:64px 1fr auto">${p ? `<img src="${photo(meta(p).img, 160)}" alt="" style="width:64px;height:64px">` : "<span></span>"}<div><div class="nm">${esc(i.name)}</div><span class="muted small">${i.qty}개</span></div><div class="lp">${won(i.price * i.qty)}</div></div>`; }).join("")}</div>
+          <div class="sum" style="margin-top:14px"><div><span>분쇄</span><span>${esc(o.grind)}</span></div><div><span>배송비</span><span>${o.shipping ? won(o.shipping) : "무료"}</span></div><div class="total"><span>합계</span><span>${won(o.total)}</span></div></div>
+        </div>
+        <div style="display:grid;gap:16px">
+          <div class="box" style="display:grid;gap:10px"><h3 style="margin:0">🔁 같은 걸로 다시 주문</h3><span class="muted small">지난번과 같은 상품·수량을 한 번에 담아요. 재구매 안내 문자 속 링크도 이 화면으로 와요.</span><button class="btn wide" id="again" ${canReorder ? "" : "disabled"}>장바구니에 다시 담기</button></div>
+          ${o.status === "결제 완료" ? `<div class="box" style="display:grid;gap:10px"><h3 style="margin:0">주문 취소</h3><span class="muted small">'결제 완료' 상태에서는 바로 취소할 수 있어요. 로스팅을 시작하면 취소가 어려워요.</span><button class="btn wide line" id="cancel">이 주문 취소하기</button></div>` : ""}
+          <div class="box"><span>궁금한 점이 있으면 <a href="#/help?order=${o.id}" style="color:var(--accent);font-weight:700;text-decoration:underline">주문 #${o.id}로 문의하기</a></span></div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById("again").onclick = () => {
+    cart = []; o.items.filter((i) => i.active && i.in_stock).forEach((i) => addToCart(i.product_id, i.qty));
+    fromOrder = { id: o.id, secret }; saveCart(); location.hash = "#/cart";
+  };
+  const c = document.getElementById("cancel");
+  if (c) c.onclick = async () => {
+    if (!confirm("이 주문을 취소할까요?")) return;
+    try { await api(`/api/orders/${o.id}/cancel`, { method: "POST", body: JSON.stringify({ secret }) }); toast("주문을 취소했어요"); products = await api("/api/products"); viewOrder(id, secret); }
+    catch (e) { toast(esc(e.message)); }
+  };
+}
+
+function viewMine() {
+  const list = store.get("hanjan_mine", []);
+  $app.innerHTML = `<div class="wrap" style="padding-bottom:60px"><h1 class="page-title">내 주문·문의</h1><p class="muted">이 브라우저에서 한 주문과 문의만 보여요.</p>
+    <div class="box">${list.length ? list.map((x) => `<div class="line-row" style="align-items:center">
+      <span>${x.type === "order" ? "🧾 주문" : "💬 문의"} #${x.id} <span class="muted small">${new Date(x.at).toLocaleString("ko-KR")}</span> ${esc(x.label || "")}</span>
+      <a class="btn sm line" href="#/${x.type}/${x.id}/${esc(x.secret)}">보기</a></div>`).join("") : `<p class="muted" style="margin:0">아직 주문이나 문의가 없어요.</p>`}</div></div>`;
+}
+
+// ===== [문의 받기] =====
+// 고객센터 화면, 문의 보내기, 문의 답변 보기
+// ───── 고객센터 ─────
+// 문의 예시: 버튼을 누르면 문의 칸에 채워져요 (AI가 어떻게 나누고 답하는지 시연)
+const SAMPLE_QUESTIONS = [
+  "어제 받은 원두 봉투가 찢어져서 왔어요. 원두가 상자에 다 쏟아졌어요.",
+  "방금 주문했는데 분쇄를 홀빈으로 바꿀 수 있을까요?",
+  "산미 없는 고소한 원두 추천해 주세요. 라테로 마셔요.",
+  "원두에서 플라스틱 조각 같은 게 나왔어요. 이미 한 잔 마셨는데 괜찮을까요?",
+  "정기배송 다음 회차 한 번만 건너뛰고 싶어요.",
+  "현금영수증은 어디서 신청하나요?",
+];
+function viewHelp(orderId) {
+  const me = store.get("hanjan_me", null);
+  $app.innerHTML = `
+    <div class="help-hero"><div class="wrap"><div class="eyebrow" style="color:var(--accent)">CUSTOMER CENTER</div><h1>무엇을 도와드릴까요?</h1>
+      <p>자주 묻는 질문에 없으면 1:1 문의를 남겨 주세요. 접수되면 AI가 먼저 내용을 정리하고 가게 안내를 근거로 답변을 준비해서, 담당자가 확인한 뒤 보내 드려요.</p></div></div>
+    <div class="wrap checkout">
+      <form class="box form" id="ask">
+        <h3 style="margin:0">1:1 문의</h3>
+        <div><span class="muted small">예시 문의 (누르면 채워져요)</span><div class="chips" style="margin-top:6px">${SAMPLE_QUESTIONS.map((q, i) => `<button type="button" data-q="${i}">${esc(q.slice(0, 16))}…</button>`).join("")}</div></div>
+        <button type="button" class="linkish" id="sample">예시 손님으로 채우기 (지어낸 정보)</button>
+        <div class="two"><label>이름<input name="name" maxlength="30" required value="${esc(me?.name || "")}"></label><label>연락처<input name="phone" inputmode="tel" required value="${esc(me?.phone || "")}"></label></div>
+        <label>주문 번호 (있으면)<input name="order_id" inputmode="numeric" placeholder="예: 13" value="${esc(orderId || "")}"></label>
+        <label>문의 내용<textarea name="message" maxlength="1000" required placeholder="주문 번호, 받은 날짜, 상황을 적어 주시면 더 빨리 도와드릴 수 있어요."></textarea></label>
+        <div class="err" id="err"></div>
+        <button class="btn wide accent" id="send">문의 보내기</button>
+        <span class="muted small">주문 번호는 주문할 때와 같은 연락처일 때만 연결돼요.</span>
+      </form>
+      <div class="box faq"><h3>자주 묻는 질문</h3>${policy.policy.map((p) => `<details><summary>${esc(p.title)}</summary><p>${esc(p.text)}</p></details>`).join("")}</div>
+    </div>`;
+  const f = document.getElementById("ask"), el = f.elements;
+  $app.querySelectorAll("[data-q]").forEach((b) => b.onclick = () => { el.message.value = SAMPLE_QUESTIONS[+b.dataset.q]; });
+  document.getElementById("sample").onclick = () => { const s = pickSample(); el.name.value = s.name; el.phone.value = s.phone; };
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("send"); btn.disabled = true; btn.textContent = "AI가 문의를 정리하는 중… (5초쯤)";
+    document.getElementById("err").textContent = "";
+    try {
+      const r = await api("/api/inquiries", { method: "POST", body: JSON.stringify({ name: el.name.value, phone: el.phone.value, order_id: el.order_id.value, message: el.message.value }) });
+      rememberMine({ type: "inquiry", id: r.id, secret: r.secret, at: Date.now(), label: r.category });
+      location.hash = `#/inquiry/${r.id}/${r.secret}?new=1`;
+    } catch (err) { document.getElementById("err").textContent = err.message; btn.disabled = false; btn.textContent = "다시 보내기"; }
+  };
+}
+
+async function viewInquiry(id, secret, isNew) {
+  let q;
+  try { q = await api(`/api/inquiries/${id}?secret=${encodeURIComponent(secret)}`); } catch (e) { return viewMissing(e.message); }
+  $app.innerHTML = `
+    <div class="wrap" style="max-width:780px;padding-bottom:60px">
+      ${isNew ? `<div class="note ok" style="margin-top:28px">✅ 문의가 접수됐어요. AI가 '${esc(q.category)}' 문의로 나눠서 담당자에게 넘겼어요.</div>` : ""}
+      <h1 class="page-title">${q.status === "답변 완료" ? "답변이 도착했어요" : "답변을 준비하고 있어요"}</h1>
+      <p class="muted">문의 #${q.id} · ${kst(q.created_at)}</p>
+      <div class="box" style="display:grid;gap:16px">
+        <div><b>문의 내용</b><p style="white-space:pre-wrap;margin:6px 0 0;color:var(--ink-2)">${esc(q.message)}</p></div>
+        ${q.reply ? `<div style="border-top:1px solid var(--line);padding-top:16px"><b>한잔로스터리 답변</b> <span class="muted small">${kst(q.answered_at)}</span><p style="white-space:pre-wrap;margin:6px 0 0">${esc(q.reply)}</p></div>`
+          : `<div class="note">담당자가 확인한 뒤 답변을 드려요. 이 화면을 다시 열면 답변을 볼 수 있어요.</div>`}
+        <div class="btns"><button class="btn sm line" id="reload">새로 고침</button><a class="btn sm line" href="#/help">다른 문의</a></div>
+      </div>
+    </div>`;
+  document.getElementById("reload").onclick = () => viewInquiry(id, secret);
+}
+
+// ===== [오류 처리] =====
+// 없는 화면 안내
+function viewMissing(msg) {
+  $app.innerHTML = `<div class="wrap" style="text-align:center;padding:90px 16px"><h1 class="page-title">찾을 수 없어요</h1><p class="muted">${esc(msg || "주소를 다시 확인해 주세요.")}</p><a class="btn" href="#/">처음으로</a></div>`;
+}
+
+// ===== [화면 바꾸기] =====
+// 주소(#) 따라 어떤 화면을 보일지 정해요
+// ───── 주소(#) 따라 화면 바꾸기 ─────
+function router() {
+  const [path, query] = location.hash.slice(1).split("?");
+  const qs = new URLSearchParams(query || "");
+  const parts = (path || "/").split("/").filter(Boolean);
+  const nav = parts[0] === "shop" ? (qs.get("kind") || "") : parts[0] === "p" ? products.find((p) => p.slug === parts[1])?.kind : { subscribe: "subscribe", help: "help", inquiry: "help" }[parts[0]];
+  document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === nav));
+  document.body.classList.remove("has-sticky");
+  window.scrollTo(0, 0);
+  if (!parts.length) return viewHome();
+  if (parts[0] === "shop") return viewShop(qs);
+  if (parts[0] === "p") return viewProduct(parts[1]);
+  if (parts[0] === "subscribe") return viewSubscribe();
+  if (parts[0] === "cart") return viewCart();
+  if (parts[0] === "order") return viewOrder(+parts[1], parts[2], qs.has("new"));
+  if (parts[0] === "help") return viewHelp(qs.get("order"));
+  if (parts[0] === "inquiry") return viewInquiry(+parts[1], parts[2], qs.has("new"));
+  if (parts[0] === "mine") return viewMine();
+  viewMissing();
+}
+// ===== [시작·오류 처리] =====
+// 처음 열 때 가게 정보를 불러와요. 실패하면 '불러오지 못했어요'
+
+(async () => {
+  saveCart();
+  try { await load(); } catch (e) { $app.innerHTML = `<div class="wrap"><div class="note bad" style="margin:40px 0">가게 정보를 불러오지 못했어요: ${esc(e.message)}</div></div>`; return; }
+  addEventListener("hashchange", router);
+  router();
+})();
+</script>
+</body>
+</html>

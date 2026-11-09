@@ -1,0 +1,7 @@
+node_modules/
+.n8n/
+.cache/
+records/
+eval/results/
+n8n.log
+n8n-debug.log
